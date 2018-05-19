@@ -1,6 +1,9 @@
 package com.github.mhdirkse.refplug;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -30,7 +33,10 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
+import org.codehaus.plexus.velocity.VelocityComponent;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -48,12 +54,23 @@ public class MyMojo extends AbstractMojo
     @Component
     private PluginDescriptor descriptor;
 
+    @Component
+    VelocityComponent velocityComponent;
+
     public void execute()
         throws MojoExecutionException
     {
         String interfaceToProcess = "com.github.mhdirkse.simpledep.MyInterface";
         ClassRealm realm = getClassRealm();
         processInterface(interfaceToProcess, realm);
+        Template template = velocityComponent.getEngine().getTemplate("simpleVelocityTemplate");
+        Writer writer = new PrintWriter(System.out);
+        template.merge(new VelocityContext(), writer);
+        try {
+            writer.flush();
+        } catch(IOException e) {
+            throw new MojoExecutionException("Could not write to standard output", e);
+        }
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
