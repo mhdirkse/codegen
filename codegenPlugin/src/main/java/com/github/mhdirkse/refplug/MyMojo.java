@@ -2,7 +2,7 @@ package com.github.mhdirkse.refplug;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -31,23 +31,20 @@ import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
+import org.sonatype.plexus.build.incremental.BuildContext;
 
 /**
  * Goal which generates .java files from POJO description files.
  */
-@Mojo(
-  name = "reflection",
-  defaultPhase = LifecyclePhase.GENERATE_SOURCES,
-  requiresDependencyResolution = ResolutionScope.COMPILE,
-  requiresProject = true)
-public class MyMojo extends AbstractMojo
-{
+@Mojo(name = "reflection", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE, requiresProject = true)
+public class MyMojo extends AbstractMojo {
     @Component
     private MavenProject project;
 
@@ -57,19 +54,40 @@ public class MyMojo extends AbstractMojo
     @Component
     VelocityComponent velocityComponent;
 
-    public void execute()
-        throws MojoExecutionException
-    {
-        String interfaceToProcess = "com.github.mhdirkse.simpledep.MyInterface";
+    @Component
+    private BuildContext buildContext;
+
+    @Parameter(defaultValue = "${project.build.directory}/generated-sources/codegen")
+    private File outputDirectory;
+
+    @Parameter
+    List<Task> tasks;
+
+    public void execute() throws MojoExecutionException {
         ClassRealm realm = getClassRealm();
-        processInterface(interfaceToProcess, realm);
-        Template template = velocityComponent.getEngine().getTemplate("simpleVelocityTemplate");
-        Writer writer = new PrintWriter(System.out);
-        template.merge(new VelocityContext(), writer);
+        for (Task task : tasks) {
+            processInterface(task.getSource(), realm);
+            Writer writer = null;
+            File fileToWrite = classToPath(outputDirectory, task.getHandler());
+            try {
+                fileToWrite.getParentFile().mkdirs();
+                Template template = velocityComponent.getEngine().getTemplate("simpleVelocityTemplate");
+                writer = new OutputStreamWriter(
+                        buildContext.newFileOutputStream(fileToWrite));
+                template.merge(new VelocityContext(), writer);
+            } catch (IOException e) {
+                throw new MojoExecutionException("Could not write file " + fileToWrite, e);
+            } finally {
+                checkedClose(writer);
+            }
+        }
+    }
+
+    private void checkedClose(Writer writer) throws MojoExecutionException {
         try {
-            writer.flush();
+            writer.close();
         } catch(IOException e) {
-            throw new MojoExecutionException("Could not write to standard output", e);
+            throw new MojoExecutionException("Could not close file" , e);
         }
     }
 
@@ -77,16 +95,14 @@ public class MyMojo extends AbstractMojo
         List<String> runtimeClasspathElements = getClasspathElements();
         ClassRealm realm = descriptor.getClassRealm();
 
-        for (String element : runtimeClasspathElements)
-        {
+        for (String element : runtimeClasspathElements) {
             File elementFile = new File(element);
             try {
                 URL url = elementFile.toURI().toURL();
                 getLog().info("Adding classpath element: " + url.toString());
                 realm.addURL(url);
-            } catch(MalformedURLException e) {
-                throw new MojoExecutionException(
-                        "Malformed URL for file " + elementFile.toString(), e);
+            } catch (MalformedURLException e) {
+                throw new MojoExecutionException("Malformed URL for file " + elementFile.toString(), e);
             }
         }
         return realm;
@@ -97,7 +113,7 @@ public class MyMojo extends AbstractMojo
         List<String> runtimeClasspathElements;
         try {
             runtimeClasspathElements = project.getRuntimeClasspathElements();
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new MojoExecutionException("Could not get dependencies", e);
         }
         return runtimeClasspathElements;
@@ -107,13 +123,24 @@ public class MyMojo extends AbstractMojo
         Class<?> myInterfaceClazz;
         try {
             myInterfaceClazz = realm.loadClass(interfaceToProcess);
-        } catch(ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             throw new MojoExecutionException("Class not found: " + interfaceToProcess);
         }
 
         Method[] methods = myInterfaceClazz.getMethods();
-        for (Method method: methods) {
+        for (Method method : methods) {
             getLog().info("Found method: " + method.getName());
         }
+    }
+
+    static File classToPath(File base, String className) {
+        String[] components = className.split("\\.");
+        File result = new File(base, components[0]);
+        if (components.length >= 2) {
+            for (int i = 1; i < components.length; ++i) {
+                result = new File(result, components[i]);
+            }
+        }
+        return result;
     }
 }

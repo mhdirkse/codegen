@@ -26,6 +26,14 @@
         <groupId>com.github.mhdirkse</groupId>
         <artifactId>codegenPlugin</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <configuration>
+          <tasks>
+            <task>
+              <source>com.github.mhdirkse.simpledep.MyInterface</source>
+              <handler>com.github.mhdirkse.handlers.MyHandler</handler>
+            </task>
+          </tasks>
+        </configuration>
         <executions>
           <execution>
             <goals>
