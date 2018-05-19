@@ -51,6 +51,12 @@ public class MyMojo extends AbstractMojo
     public void execute()
         throws MojoExecutionException
     {
+        String interfaceToProcess = "com.github.mhdirkse.simpledep.MyInterface";
+        ClassRealm realm = getClassRealm();
+        processInterface(interfaceToProcess, realm);
+    }
+
+    private ClassRealm getClassRealm() throws MojoExecutionException {
         List<String> runtimeClasspathElements = getClasspathElements();
         ClassRealm realm = descriptor.getClassRealm();
 
@@ -59,24 +65,14 @@ public class MyMojo extends AbstractMojo
             File elementFile = new File(element);
             try {
                 URL url = elementFile.toURI().toURL();
-                System.out.println("Adding classpath element: " + url.toString());
+                getLog().info("Adding classpath element: " + url.toString());
                 realm.addURL(url);
             } catch(MalformedURLException e) {
                 throw new MojoExecutionException(
                         "Malformed URL for file " + elementFile.toString(), e);
             }
         }
-        Class<?> myInterfaceClazz;
-        try {
-            myInterfaceClazz = realm.loadClass("com.github.mhdirkse.simpledep.MyInterface");
-        } catch(ClassNotFoundException e) {
-            throw new MojoExecutionException("Class not found");
-        }
-
-        Method[] methods = myInterfaceClazz.getMethods();
-        for (Method method: methods) {
-            System.out.println("Found method: " + method.getName());
-        }
+        return realm;
     }
 
     @SuppressWarnings("unchecked")
@@ -88,5 +84,19 @@ public class MyMojo extends AbstractMojo
             throw new MojoExecutionException("Could not get dependencies", e);
         }
         return runtimeClasspathElements;
+    }
+
+    private void processInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
+        Class<?> myInterfaceClazz;
+        try {
+            myInterfaceClazz = realm.loadClass(interfaceToProcess);
+        } catch(ClassNotFoundException e) {
+            throw new MojoExecutionException("Class not found: " + interfaceToProcess);
+        }
+
+        Method[] methods = myInterfaceClazz.getMethods();
+        for (Method method: methods) {
+            getLog().info("Found method: " + method.getName());
+        }
     }
 }
