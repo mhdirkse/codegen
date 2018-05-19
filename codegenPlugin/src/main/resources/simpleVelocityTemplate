@@ -1,1 +1,7 @@
-Hello world!
+package $targetPackage;
+
+public interface $targetInterfaceSimpleName {
+#foreach ($method in $methods)
+boolean $method.name ($method.signature);
+#end
+}

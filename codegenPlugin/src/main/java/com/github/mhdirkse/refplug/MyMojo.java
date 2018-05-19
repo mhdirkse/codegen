@@ -7,6 +7,7 @@ import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -64,23 +65,38 @@ public class MyMojo extends AbstractMojo {
     List<Task> tasks;
 
     public void execute() throws MojoExecutionException {
+        project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         ClassRealm realm = getClassRealm();
         for (Task task : tasks) {
-            processInterface(task.getSource(), realm);
+            Method[] reflectionMethods = processInterface(task.getSource(), realm);
             Writer writer = null;
-            File fileToWrite = classToPath(outputDirectory, task.getHandler());
+            File fileToWrite = classToPathOfJavaFile(outputDirectory, task.getHandler());
             try {
                 fileToWrite.getParentFile().mkdirs();
                 Template template = velocityComponent.getEngine().getTemplate("simpleVelocityTemplate");
                 writer = new OutputStreamWriter(
                         buildContext.newFileOutputStream(fileToWrite));
-                template.merge(new VelocityContext(), writer);
+                template.merge(getVelocityContext(task, reflectionMethods), writer);
             } catch (IOException e) {
                 throw new MojoExecutionException("Could not write file " + fileToWrite, e);
             } finally {
                 checkedClose(writer);
             }
         }
+    }
+
+    private VelocityContext getVelocityContext(final Task task, final Method[] reflectionMethods) {
+        VelocityContext result = new VelocityContext();
+        result.put("targetPackage", task.getHandler().substring(0, task.getHandler().lastIndexOf('.')));
+        result.put("targetInterfaceSimpleName", task.getHandler().substring(
+                task.getHandler().lastIndexOf('.') + 1, task.getHandler().length()));
+        result.put("sourceInterface", task.getSource());
+        List<VelocityContextMethod> contextMethods = new ArrayList<>();
+        for (Method reflectionMethod : reflectionMethods) {
+            contextMethods.add(new VelocityContextMethod(reflectionMethod));
+        }
+        result.put("methods", contextMethods);
+        return result;
     }
 
     private void checkedClose(Writer writer) throws MojoExecutionException {
@@ -119,28 +135,32 @@ public class MyMojo extends AbstractMojo {
         return runtimeClasspathElements;
     }
 
-    private void processInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
+    private Method[] processInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
         Class<?> myInterfaceClazz;
         try {
             myInterfaceClazz = realm.loadClass(interfaceToProcess);
         } catch (ClassNotFoundException e) {
             throw new MojoExecutionException("Class not found: " + interfaceToProcess);
         }
-
-        Method[] methods = myInterfaceClazz.getMethods();
-        for (Method method : methods) {
-            getLog().info("Found method: " + method.getName());
-        }
+        return myInterfaceClazz.getMethods();
     }
 
-    static File classToPath(File base, String className) {
+    static File classToPathOfJavaFile(File base, String className) {
         String[] components = className.split("\\.");
-        File result = new File(base, components[0]);
+        File result = new File(base, javaNameToPathComponent(components, 0));
         if (components.length >= 2) {
             for (int i = 1; i < components.length; ++i) {
-                result = new File(result, components[i]);
+                result = new File(result, javaNameToPathComponent(components, i));
             }
         }
         return result;
+    }
+
+    private static String javaNameToPathComponent(final String[] components, final int index) {
+        if (index < (components.length - 1)) {
+            return components[index];
+        } else {
+            return components[index] + ".java";
+        }
     }
 }
