@@ -68,60 +68,13 @@ public class CodegenMojo extends AbstractMojo {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         ClassRealm realm = getClassRealm();
         for (Task task : tasks) {
-            Method[] reflectionMethods = processInterface(task.getSource(), realm);
-            Writer writer = null;
-            File fileToWrite = classToPathOfJavaFile(outputDirectory, task.getHandler());
-            try {
-                fileToWrite.getParentFile().mkdirs();
-                Template template = velocityComponent.getEngine().getTemplate(
-                        "com/github/mhdirkse/codegen/plugin/handlerInterfaceTemplate");
-                writer = new OutputStreamWriter(
-                        buildContext.newFileOutputStream(fileToWrite));
-                template.merge(getVelocityContext(task, reflectionMethods), writer);
-            } catch (IOException e) {
-                throw new MojoExecutionException("Could not write file " + fileToWrite, e);
-            } finally {
-                checkedClose(writer);
-            }
-        }
-    }
-
-    private VelocityContext getVelocityContext(final Task task, final Method[] reflectionMethods) {
-        VelocityContext result = new VelocityContext();
-        result.put("targetPackage", task.getHandler().substring(0, task.getHandler().lastIndexOf('.')));
-        result.put("targetInterfaceSimpleName", task.getHandler().substring(
-                task.getHandler().lastIndexOf('.') + 1, task.getHandler().length()));
-        result.put("sourceInterface", task.getSource());
-        List<VelocityContextMethod> contextMethods = new ArrayList<>();
-        for (Method reflectionMethod : reflectionMethods) {
-            contextMethods.add(new VelocityContextMethod(reflectionMethod));
-        }
-        result.put("methods", contextMethods);
-        return result;
-    }
-
-    private void checkedClose(Writer writer) throws MojoExecutionException {
-        try {
-            writer.close();
-        } catch(IOException e) {
-            throw new MojoExecutionException("Could not close file" , e);
+            handleTask(task, realm);
         }
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
-        List<String> runtimeClasspathElements = getClasspathElements();
         ClassRealm realm = descriptor.getClassRealm();
-
-        for (String element : runtimeClasspathElements) {
-            File elementFile = new File(element);
-            try {
-                URL url = elementFile.toURI().toURL();
-                getLog().info("Adding classpath element: " + url.toString());
-                realm.addURL(url);
-            } catch (MalformedURLException e) {
-                throw new MojoExecutionException("Malformed URL for file " + elementFile.toString(), e);
-            }
-        }
+        addClasspathElementsToRealm(getClasspathElements(), realm);
         return realm;
     }
 
@@ -136,7 +89,33 @@ public class CodegenMojo extends AbstractMojo {
         return runtimeClasspathElements;
     }
 
-    private Method[] processInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
+    private void addClasspathElementsToRealm(List<String> runtimeClasspathElements, ClassRealm realm)
+            throws MojoExecutionException {
+        for (String element : runtimeClasspathElements) {
+            File elementFile = new File(element);
+            try {
+                URL url = elementFile.toURI().toURL();
+                getLog().info("Adding classpath element: " + url.toString());
+                realm.addURL(url);
+            } catch (MalformedURLException e) {
+                throw new MojoExecutionException("Malformed URL for file " + elementFile.toString(), e);
+            }
+        }
+    }
+
+    private void handleTask(Task task, ClassRealm realm) throws MojoExecutionException {
+        Method[] reflectionMethods = processJavaInterface(task.getSource(), realm);
+        writeOutputFile(
+                getVelocityContextForJavaHandlerInterface(task, reflectionMethods),
+                getTemplatePath("handlerInterfaceTemplate"),
+                task.getHandler());
+        writeOutputFile(
+                getVelocityContextForJavaAbstractHandler(task, reflectionMethods),
+                getTemplatePath("abstractHandlerClassTemplate"),
+                task.getAbstractHandler());
+    }
+
+    private Method[] processJavaInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
         Class<?> myInterfaceClazz;
         try {
             myInterfaceClazz = realm.loadClass(interfaceToProcess);
@@ -144,6 +123,60 @@ public class CodegenMojo extends AbstractMojo {
             throw new MojoExecutionException("Class not found: " + interfaceToProcess);
         }
         return myInterfaceClazz.getMethods();
+    }
+
+    private VelocityContext getVelocityContextForJavaHandlerInterface(final Task task, final Method[] reflectionMethods) {
+        VelocityContext result = new VelocityContext();
+        result.put("targetPackage", getPackageNameOfFullClassName(task.getHandler()));
+        result.put("targetInterfaceSimpleName", getSimpleNameOfFullClassName(task.getHandler()));
+        result.put("sourceInterface", task.getSource());
+        addReflectionMethodsToVelocityContext(reflectionMethods, result);
+        return result;
+    }
+
+    private String getPackageNameOfFullClassName(String javaPackageName) {
+        return javaPackageName.substring(0, javaPackageName.lastIndexOf('.'));
+    }
+
+    private String getSimpleNameOfFullClassName(String javaPackageName) {
+        return javaPackageName.substring(
+                javaPackageName.lastIndexOf('.') + 1, javaPackageName.length());
+    }
+
+    private void addReflectionMethodsToVelocityContext(final Method[] reflectionMethods, VelocityContext result) {
+        List<VelocityContextMethod> contextMethods = new ArrayList<>();
+        for (Method reflectionMethod : reflectionMethods) {
+            contextMethods.add(new VelocityContextMethod(reflectionMethod));
+        }
+        result.put("methods", contextMethods);
+    }
+
+    private VelocityContext getVelocityContextForJavaAbstractHandler(final Task task, final Method[] reflectionMethods) {
+        VelocityContext result = new VelocityContext();
+        result.put("targetPackage", getPackageNameOfFullClassName(task.getAbstractHandler()));
+        result.put("targetHandlerClassSimpleName", getSimpleNameOfFullClassName(task.getAbstractHandler()));
+        result.put("targetInterface", task.getHandler());
+        addReflectionMethodsToVelocityContext(reflectionMethods, result);
+        return result;
+    }
+
+    private String getTemplatePath(final String simpleName) {
+        return "com/github/mhdirkse/codegen/plugin/" + simpleName;
+    }
+
+    private void writeOutputFile(
+            VelocityContext velocityContext,
+            String templateFileName,
+            String outputClass) throws MojoExecutionException {
+        Writer writer = null;
+        File fileToWrite = classToPathOfJavaFile(outputDirectory, outputClass);
+        try {
+            writer = writeOutputFileUnchecked(velocityContext, templateFileName, outputClass, fileToWrite);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Could not write file " + fileToWrite.toString(), e);
+        } finally {
+            checkedClose(writer);
+        }
     }
 
     static File classToPathOfJavaFile(File base, String className) {
@@ -162,6 +195,28 @@ public class CodegenMojo extends AbstractMojo {
             return components[index];
         } else {
             return components[index] + ".java";
+        }
+    }
+
+    private Writer writeOutputFileUnchecked(
+            VelocityContext velocityContext,
+            String templateFileName,
+            String outputClass,
+            File fileToWrite) throws IOException {
+        fileToWrite.getParentFile().mkdirs();
+        Template template = velocityComponent.getEngine().getTemplate(
+                templateFileName);        
+        Writer writer = new OutputStreamWriter(
+                buildContext.newFileOutputStream(fileToWrite));
+        template.merge(velocityContext, writer);
+        return writer;
+    }
+
+    private void checkedClose(Writer writer) throws MojoExecutionException {
+        try {
+            writer.close();
+        } catch(IOException e) {
+            throw new MojoExecutionException("Could not close file" , e);
         }
     }
 }

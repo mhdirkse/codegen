@@ -14,7 +14,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>3.8.1</version>
+      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -34,6 +34,7 @@
             <task>
               <source>com.github.mhdirkse.codegen.test.input.MyInterface</source>
               <handler>com.github.mhdirkse.codegen.test.output.MyInterfaceHandler</handler>
+              <abstractHandler>com.github.mhdirkse.codegen.test.output.MyInterfaceAbstractHandler</abstractHandler>
             </task>
           </tasks>
         </configuration>

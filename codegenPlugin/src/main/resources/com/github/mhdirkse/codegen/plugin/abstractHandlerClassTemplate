@@ -1,0 +1,16 @@
+package $targetPackage;
+
+public class $targetHandlerClassSimpleName implements $targetInterface {
+private final boolean defaultResult;
+
+public $targetHandlerClassSimpleName (final boolean defaultResult) {
+  this.defaultResult = defaultResult;
+}
+ 
+#foreach ($method in $methods)
+@Override
+public boolean $method.name ($method.signature) {
+  return defaultResult;
+}
+#end
+}
