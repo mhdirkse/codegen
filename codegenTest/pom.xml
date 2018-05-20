@@ -40,7 +40,7 @@
         <executions>
           <execution>
             <goals>
-              <goal>reflection</goal>
+              <goal>codegen</goal>
             </goals>
           </execution>
         </executions>
