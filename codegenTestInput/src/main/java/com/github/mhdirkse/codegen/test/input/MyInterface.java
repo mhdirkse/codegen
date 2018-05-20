@@ -1,4 +1,4 @@
-package com.github.mhdirkse.simpledep;
+package com.github.mhdirkse.codegen.test.input;
 
 public interface MyInterface {
     void firstMethod(int x);

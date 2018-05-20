@@ -1,4 +1,4 @@
-package com.github.mhdirkse.refplug;
+package com.github.mhdirkse.codegen.plugin;
 
 public class Task {
     private String source;

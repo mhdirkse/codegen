@@ -1,4 +1,4 @@
-package com.github.mhdirkse.refplug;
+package com.github.mhdirkse.codegen.plugin;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

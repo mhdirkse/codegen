@@ -32,8 +32,8 @@
         <configuration>
           <tasks>
             <task>
-              <source>com.github.mhdirkse.simpledep.MyInterface</source>
-              <handler>com.github.mhdirkse.handlers.MyHandler</handler>
+              <source>com.github.mhdirkse.codegen.test.input.MyInterface</source>
+              <handler>com.github.mhdirkse.codegen.test.output.MyInterfaceHandler</handler>
             </task>
           </tasks>
         </configuration>

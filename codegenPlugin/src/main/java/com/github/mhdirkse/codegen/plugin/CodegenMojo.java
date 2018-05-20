@@ -1,4 +1,4 @@
-package com.github.mhdirkse.refplug;
+package com.github.mhdirkse.codegen.plugin;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,8 +44,8 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 /**
  * Goal which generates .java files from POJO description files.
  */
-@Mojo(name = "reflection", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE, requiresProject = true)
-public class MyMojo extends AbstractMojo {
+@Mojo(name = "codegen", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE, requiresProject = true)
+public class CodegenMojo extends AbstractMojo {
     @Component
     private MavenProject project;
 
@@ -73,7 +73,8 @@ public class MyMojo extends AbstractMojo {
             File fileToWrite = classToPathOfJavaFile(outputDirectory, task.getHandler());
             try {
                 fileToWrite.getParentFile().mkdirs();
-                Template template = velocityComponent.getEngine().getTemplate("simpleVelocityTemplate");
+                Template template = velocityComponent.getEngine().getTemplate(
+                        "com/github/mhdirkse/codegen/plugin/handlerInterfaceTemplate");
                 writer = new OutputStreamWriter(
                         buildContext.newFileOutputStream(fileToWrite));
                 template.merge(getVelocityContext(task, reflectionMethods), writer);

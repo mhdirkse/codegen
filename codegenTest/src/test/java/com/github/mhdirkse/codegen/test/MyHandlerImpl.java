@@ -1,8 +1,8 @@
 package com.github.mhdirkse.codegen.test;
 
-import com.github.mhdirkse.handlers.MyHandler;
+import com.github.mhdirkse.codegen.test.output.MyInterfaceHandler;
 
-public class MyHandlerImpl implements MyHandler {
+public class MyHandlerImpl implements MyInterfaceHandler {
     @Override
     public boolean firstMethod(int p1) {
         return false;
