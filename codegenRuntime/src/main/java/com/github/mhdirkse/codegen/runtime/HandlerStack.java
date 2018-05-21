@@ -19,17 +19,54 @@ public final class HandlerStack<H> {
         handlers.removeFirst();
     }
 
-    void run(HandlerVisitor<H> handlerVisitor) {
-        Iterator<H> it = handlers.iterator();
-        boolean handled = false;
-        while (it.hasNext() && !handled) {
-            handled = handlerVisitor.onHandler(it.next());
+    void run(final HandlerVisitor<H> handlerVisitor) {
+        new Runner(handlerVisitor, handlers.iterator()).run();
+    }
+
+    private class Runner {
+        private final HandlerVisitor<H> handlerVisitor;
+        private final Iterator<H> it;
+
+        private H prevH = null;
+        private H curH = null;
+        private H nextH = null;
+
+        private boolean handled = false;
+
+        Runner(
+                final HandlerVisitor<H> handlerVisitor,
+                final Iterator<H> it) {
+            this.handlerVisitor = handlerVisitor;
+            this.it = it;
         }
-        if (!handled) {
-            handled = handlerVisitor.onNoMoreHandlers();
+
+        void run() {
+            while (it.hasNext() && !handled) {
+                iterate(it.next());
+            }
+            if (!handled) {
+                iterate(null);
+            }
+            if (!handled) {
+                throw new NotHandledException(getHandlerNames());
+            }
         }
-        if (!handled) {
-            throw new NotHandledException(getHandlerNames());
+
+        private void iterate(final H nextHandlerOrNull) {
+            shift(nextHandlerOrNull);
+            if (curH != null) {
+                handled = callHandlerVisitor();
+            }
+        }
+
+        private void shift(H newHandler) {
+            prevH = curH;
+            curH = nextH;
+            nextH = newHandler;
+        }
+
+        private boolean callHandlerVisitor() {
+            return handlerVisitor.onHandler(curH, prevH, nextH);
         }
     }
 
