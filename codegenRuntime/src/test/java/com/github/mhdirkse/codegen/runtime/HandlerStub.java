@@ -14,7 +14,7 @@ class HandlerStub {
         this.name = name;
     }
 
-    public boolean handleMe(String someArgument, HandlerStackContext ctx) {
+    public boolean handleMe(String someArgument, HandlerStackContext<HandlerStub> ctx) {
         return returnHandled;
     }
 

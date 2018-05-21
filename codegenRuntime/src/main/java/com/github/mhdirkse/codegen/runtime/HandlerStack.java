@@ -8,15 +8,21 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-public final class HandlerStack<H> {
+public final class HandlerStack<H> implements HandlerStackManipulator<H> {
     private Deque<H> handlers = new ArrayDeque<>();
 
-    void addFirst(H handler) {
+    @Override
+    public void addFirst(H handler) {
         handlers.addFirst(handler);
     }
 
-    void removeFirst() {
+    @Override
+    public void removeFirst() {
         handlers.removeFirst();
+    }
+
+    public void run(final HandlerRunner<H> runner) {
+        run(new HandlerVisitorImpl<H>(runner, this));
     }
 
     void run(final HandlerVisitor<H> handlerVisitor) {
