@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class HandlerVisitorImpl<H>
-implements HandlerVisitor<H>, HandlerStackContext<H>, HandlerStackManipulator<H> {
+implements HandlerVisitor<H>, HandlerStackContext<H> {
     private final HandlerRunner<H> runner;
 
     private H prevH;

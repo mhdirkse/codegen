@@ -15,6 +15,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
+import org.junit.Assert;
+
 @RunWith(EasyMockRunner.class)
 public class HandlerStackTest {
     private HandlerStack<HandlerStub> instance;
@@ -32,11 +34,15 @@ public class HandlerStackTest {
 
     @Test
     public void testWhenNoHandlersThenClearError() {
+        visitor.afterStackVisited();
         replay(visitor);
         exception.expect(NotHandledException.class);
         exception.expectMessage("No handlers");
-        instance.run(visitor);
-        verify(visitor);
+        try {
+            instance.run(visitor);
+        } finally {
+            verify(visitor);
+        }
     }
 
     @Test
@@ -44,6 +50,7 @@ public class HandlerStackTest {
         HandlerStub handler = new HandlerStub(true);
         instance.addFirst(handler);
         expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(true);
+        visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
         verify(visitor);
@@ -54,11 +61,15 @@ public class HandlerStackTest {
         HandlerStub handler = new HandlerStub(true, "theHandler");
         instance.addFirst(handler);
         expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(false);
+        visitor.afterStackVisited();
         replay(visitor);
         exception.expect(NotHandledException.class);
         exception.expectMessage("theHandler");
-        instance.run(visitor);
-        verify(visitor);
+        try {
+            instance.run(visitor);
+        } finally {
+            verify(visitor);
+        }
     }
 
     @Test
@@ -69,6 +80,7 @@ public class HandlerStackTest {
         instance.addFirst(first);
         expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
         expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class))).andReturn(true);
+        visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
         verify(visitor);
@@ -81,6 +93,7 @@ public class HandlerStackTest {
         instance.addFirst(second);
         instance.addFirst(first);
         expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(true);
+        visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
         verify(visitor);
@@ -94,11 +107,15 @@ public class HandlerStackTest {
         instance.addFirst(first);
         expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
         expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class))).andReturn(false);
+        visitor.afterStackVisited();
         replay(visitor);
         exception.expect(NotHandledException.class);
         exception.expectMessage("first, second");
-        instance.run(visitor);
-        verify(visitor);
+        try {
+            instance.run(visitor);    
+        } finally {
+            verify(visitor);
+        }
     }
 
     @Test
@@ -109,6 +126,7 @@ public class HandlerStackTest {
         instance.addFirst(first);
         instance.removeFirst();
         expect(visitor.onHandler(same(second), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(true);
+        visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
         verify(visitor);
@@ -125,8 +143,25 @@ public class HandlerStackTest {
         expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
         expect(visitor.onHandler(same(second), same(first), same(third))).andReturn(false);
         expect(visitor.onHandler(same(third), same(second), isNull(HandlerStub.class))).andReturn(true);
+        visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
         verify(visitor);
+    }
+
+    @Test
+    public void testIntegration() {
+        HandlerStub addedDuringHandling = new HandlerStub(true, "first");
+        HandlerStub initialHandler = new HandlerStub(true, "second", addedDuringHandling);
+        HandlerStack<HandlerStub> instance = new HandlerStack<>();
+        instance.addFirst(initialHandler);
+        Assert.assertEquals("second", instance.getHandlerNames());
+        instance.run(new HandlerRunner<HandlerStub>() {
+            @Override
+            public boolean run(HandlerStub handler, HandlerStackContext<HandlerStub> ctx) {
+                return handler.handleMe("MyArgument", ctx);
+            }
+        });
+        Assert.assertEquals("first, second", instance.getHandlerNames());
     }
 }

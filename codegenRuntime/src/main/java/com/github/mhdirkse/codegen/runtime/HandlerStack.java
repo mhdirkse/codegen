@@ -26,10 +26,14 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
     }
 
     void run(final HandlerVisitor<H> handlerVisitor) {
-        new Runner(handlerVisitor, handlers.iterator()).run();
+        try {
+            new Visitor(handlerVisitor, handlers.iterator()).run();    
+        } finally {
+            handlerVisitor.afterStackVisited();
+        }
     }
 
-    private class Runner {
+    private class Visitor {
         private final HandlerVisitor<H> handlerVisitor;
         private final Iterator<H> it;
 
@@ -39,7 +43,7 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
 
         private boolean handled = false;
 
-        Runner(
+        Visitor(
                 final HandlerVisitor<H> handlerVisitor,
                 final Iterator<H> it) {
             this.handlerVisitor = handlerVisitor;
@@ -76,7 +80,7 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
         }
     }
 
-    private String getHandlerNames() {
+    String getHandlerNames() {
         if (handlers.isEmpty()) {
             return "No handlers";
         }
