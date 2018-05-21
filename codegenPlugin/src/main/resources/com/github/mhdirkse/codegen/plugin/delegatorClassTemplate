@@ -1,0 +1,26 @@
+package $targetPackage;
+
+public class $targetDelegatorClassSimpleName implements $sourceInterface {
+
+private final com.github.mhdirkse.codegen.runtime.HandlerStack<$targetInterface> delegate;
+
+public $targetDelegatorClassSimpleName () {
+  this.delegate = new com.github.mhdirkse.codegen.runtime.HandlerStack<>();
+}
+ 
+#foreach ($method in $methods)
+@Override
+public void $method.name ($method.finalSignature) {
+  try {
+      delegate.run(new com.github.mhdirkse.codegen.runtime.HandlerRunner<$targetInterface>() {
+        @Override
+        public boolean run($targetInterface handler, com.github.mhdirkse.codegen.runtime.HandlerStackContext<$targetInterface> ctx) {
+          return handler.$method.name ($method.actualParametersForHandler);
+        }
+      });
+  } catch (com.github.mhdirkse.codegen.runtime.NotHandledException e) {
+      throw new com.github.mhdirkse.codegen.runtime.NotHandledException("Method not handled: " + "$method.name", e);
+  }
+}
+#end
+}

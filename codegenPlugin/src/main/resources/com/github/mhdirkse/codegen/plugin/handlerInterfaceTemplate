@@ -2,6 +2,6 @@ package $targetPackage;
 
 public interface $targetInterfaceSimpleName {
 #foreach ($method in $methods)
-boolean $method.name ($method.signature);
+boolean $method.name ($method.signatureForHandler);
 #end
 }

@@ -9,7 +9,7 @@ public $targetHandlerClassSimpleName (final boolean defaultResult) {
  
 #foreach ($method in $methods)
 @Override
-public boolean $method.name ($method.signature) {
+public boolean $method.name ($method.finalSignatureForHandler) {
   return defaultResult;
 }
 #end

@@ -113,6 +113,10 @@ public class CodegenMojo extends AbstractMojo {
                 getVelocityContextForJavaAbstractHandler(task, reflectionMethods),
                 getTemplatePath("abstractHandlerClassTemplate"),
                 task.getAbstractHandler());
+        writeOutputFile(
+                getVelocityContextForDelegator(task, reflectionMethods),
+                getTemplatePath("delegatorClassTemplate"),
+                task.getDelegator());
     }
 
     private Method[] processJavaInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
@@ -130,7 +134,7 @@ public class CodegenMojo extends AbstractMojo {
         result.put("targetPackage", getPackageNameOfFullClassName(task.getHandler()));
         result.put("targetInterfaceSimpleName", getSimpleNameOfFullClassName(task.getHandler()));
         result.put("sourceInterface", task.getSource());
-        addReflectionMethodsToVelocityContext(reflectionMethods, result);
+        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
         return result;
     }
 
@@ -143,10 +147,13 @@ public class CodegenMojo extends AbstractMojo {
                 javaPackageName.lastIndexOf('.') + 1, javaPackageName.length());
     }
 
-    private void addReflectionMethodsToVelocityContext(final Method[] reflectionMethods, VelocityContext result) {
+    private void addReflectionMethodsToVelocityContext(
+            final Method[] reflectionMethods,
+            final VelocityContext result,
+            final String handlerStackTypeParameter) {
         List<VelocityContextMethod> contextMethods = new ArrayList<>();
         for (Method reflectionMethod : reflectionMethods) {
-            contextMethods.add(new VelocityContextMethod(reflectionMethod));
+            contextMethods.add(new VelocityContextMethod(reflectionMethod, handlerStackTypeParameter));
         }
         result.put("methods", contextMethods);
     }
@@ -156,7 +163,17 @@ public class CodegenMojo extends AbstractMojo {
         result.put("targetPackage", getPackageNameOfFullClassName(task.getAbstractHandler()));
         result.put("targetHandlerClassSimpleName", getSimpleNameOfFullClassName(task.getAbstractHandler()));
         result.put("targetInterface", task.getHandler());
-        addReflectionMethodsToVelocityContext(reflectionMethods, result);
+        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
+        return result;
+    }
+
+    private VelocityContext getVelocityContextForDelegator(final Task task, final Method[] reflectionMethods) {
+        VelocityContext result = new VelocityContext();
+        result.put("targetPackage", getPackageNameOfFullClassName(task.getDelegator()));
+        result.put("targetDelegatorClassSimpleName", getSimpleNameOfFullClassName(task.getDelegator()));
+        result.put("sourceInterface", task.getSource());
+        result.put("targetInterface", task.getHandler());
+        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
         return result;
     }
 
