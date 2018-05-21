@@ -19,6 +19,11 @@
     </dependency>
     <dependency>
       <groupId>com.github.mhdirkse</groupId>
+      <artifactId>codegenRuntime</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.mhdirkse</groupId>
       <artifactId>codegenTestInput</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
@@ -35,6 +40,7 @@
               <source>com.github.mhdirkse.codegen.test.input.MyInterface</source>
               <handler>com.github.mhdirkse.codegen.test.output.MyInterfaceHandler</handler>
               <abstractHandler>com.github.mhdirkse.codegen.test.output.MyInterfaceAbstractHandler</abstractHandler>
+              <delegator>com.github.mhdirkse.codegen.test.output.MyInterfaceDelegator</delegator>
             </task>
           </tasks>
         </configuration>
