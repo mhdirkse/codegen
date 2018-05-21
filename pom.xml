@@ -10,6 +10,7 @@
     <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
   <modules>
+    <module>codegenRuntime</module>
     <module>codegenTestInput</module>
     <module>codegenPlugin</module>
     <module>codegenTest</module>
