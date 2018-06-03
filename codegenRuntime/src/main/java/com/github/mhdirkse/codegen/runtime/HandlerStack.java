@@ -21,6 +21,13 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
         handlers.removeFirst();
     }
 
+    @Override
+    public void removeFirst(int count) {
+        for (int i = 0; i < count; ++i) {
+            removeFirst();
+        }
+    }
+
     public void run(final HandlerRunner<H> runner) {
         run(new HandlerVisitorImpl<H>(runner, this));
     }

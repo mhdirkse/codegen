@@ -80,4 +80,15 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
             }
         });
     }
+
+    @Override
+    public void removeAllPreceeding() {
+        final int currentHandlerSeq = handlerSeq;
+        handlerStackChanges.add(new Runnable() {
+            @Override
+            public void run() {
+                delegate.removeFirst(currentHandlerSeq);        
+            }
+        });
+    }
 }

@@ -1,22 +1,23 @@
 package com.github.mhdirkse.codegen.runtime;
 
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
-import static org.easymock.EasyMock.isNull;
-import static org.easymock.EasyMock.eq;
 
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import org.junit.Assert;
+import org.hamcrest.CoreMatchers;
 
 @RunWith(EasyMockRunner.class)
 public class HandlerStackTest {
@@ -164,5 +165,14 @@ public class HandlerStackTest {
             }
         });
         Assert.assertEquals("first, second", instance.getHandlerNames());
+    }
+
+    @Test
+    public void testWhenThreeHandlersAndRemoveTwoThenOneLeft() {
+        instance.addFirst(new HandlerStub(true, "third"));
+        instance.addFirst(new HandlerStub(true, "second"));
+        instance.addFirst(new HandlerStub(true, "first"));
+        instance.removeFirst(2);
+        Assert.assertEquals("third", instance.getHandlerNames());
     }
 }

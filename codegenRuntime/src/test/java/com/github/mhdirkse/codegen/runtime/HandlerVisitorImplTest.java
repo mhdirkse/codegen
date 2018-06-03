@@ -32,7 +32,7 @@ public class HandlerVisitorImplTest {
         second = new HandlerStub(true, "second");
         third = new HandlerStub(true, "third");
         instanceVisiting = new HandlerVisitorImpl<HandlerStub>(handlerRunner, null);
-        instanceStackManipulating = new HandlerVisitorImpl<HandlerStub>(null, handlerStack);
+        instanceStackManipulating = new HandlerVisitorImpl<HandlerStub>(handlerRunner, handlerStack);
     }
 
     @Test
@@ -132,6 +132,25 @@ public class HandlerVisitorImplTest {
         replay(handlerStack);
         instanceStackManipulating.removeFirst();
         instanceStackManipulating.removeFirst();
+        instanceStackManipulating.afterStackVisited();
+        verify(handlerStack);
+    }
+
+    @Test
+    public void testWhenRemoveAllPreceedingThenNoRemovalsYet() {
+        replay(handlerStack);
+        instanceStackManipulating.removeAllPreceeding();
+        verify(handlerStack);
+    }
+
+    @Test
+    public void testWhenRemoveAllPreceedingAndAfterStackVisitedThenAllPreceedingRemoved() {
+        int handlerSeq = 1;
+        int numberToRemove = handlerSeq;
+        handlerStack.removeFirst(numberToRemove);
+        replay(handlerStack);
+        instanceStackManipulating.onHandler(second, first, null, handlerSeq);
+        instanceStackManipulating.removeAllPreceeding();
         instanceStackManipulating.afterStackVisited();
         verify(handlerStack);
     }
