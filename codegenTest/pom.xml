@@ -8,7 +8,7 @@
     <parent>
     <groupId>com.github.mhdirkse</groupId>
     <artifactId>codegen</artifactId>
-    <version>1.2</version>
+    <version>1.3-SNAPSHOT</version>
   </parent>
   <dependencies>
     <dependency>
