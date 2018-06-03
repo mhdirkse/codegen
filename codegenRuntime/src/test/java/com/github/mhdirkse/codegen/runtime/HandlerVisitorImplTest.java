@@ -40,7 +40,7 @@ public class HandlerVisitorImplTest {
         HandlerStub handler = new HandlerStub(true);
         expect(handlerRunner.run(handler, instanceVisiting)).andReturn(true);
         replay(handlerRunner);
-        instanceVisiting.onHandler(handler, null, null);
+        Assert.assertTrue(instanceVisiting.onHandler(handler, null, null, 0));
         verify(handlerRunner);
     }
 
@@ -49,22 +49,23 @@ public class HandlerVisitorImplTest {
         HandlerStub handler = new HandlerStub(false);
         expect(handlerRunner.run(handler, instanceVisiting)).andReturn(false);
         replay(handlerRunner);
-        instanceVisiting.onHandler(handler, null, null);
+        Assert.assertFalse(instanceVisiting.onHandler(handler, null, null, 0));
         verify(handlerRunner);
     }
 
     @Test
-    public void testPrevNextSingleHandler() {
-        instanceVisiting.onHandler(first, null, null);
+    public void testPrevNextSingleHandlerAndSeq() {
+        instanceVisiting.onHandler(first, null, null, 0);
         Assert.assertTrue(instanceVisiting.isFirst());
         Assert.assertTrue(instanceVisiting.isLast());
         Assert.assertNull(instanceVisiting.getPreviousHandler());
         Assert.assertNull(instanceVisiting.getNextHandler());
+        Assert.assertEquals(0, instanceVisiting.getHandlerSeq());
     }
 
     @Test
     public void testPrevNextFirstOfTwo() {
-        instanceVisiting.onHandler(first, null, second);
+        instanceVisiting.onHandler(first, null, second, 0);
         Assert.assertTrue(instanceVisiting.isFirst());
         Assert.assertFalse(instanceVisiting.isLast());
         Assert.assertNull(instanceVisiting.getPreviousHandler());
@@ -72,12 +73,13 @@ public class HandlerVisitorImplTest {
     }
 
     @Test
-    public void testPrevNextLastOfTwo() {
-        instanceVisiting.onHandler(second, first, null);
+    public void testPrevNextLastOfTwoAndSeq() {
+        instanceVisiting.onHandler(second, first, null, 1);
         Assert.assertFalse(instanceVisiting.isFirst());
         Assert.assertTrue(instanceVisiting.isLast());
         Assert.assertSame(first, instanceVisiting.getPreviousHandler());
         Assert.assertNull(instanceVisiting.getNextHandler());
+        Assert.assertEquals(1, instanceVisiting.getHandlerSeq());
     }
 
     @Test

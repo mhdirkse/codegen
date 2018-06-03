@@ -9,6 +9,7 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
 
     private H prevH;
     private H nextH;
+    private int handlerSeq;
 
     private final HandlerStackManipulator<H> delegate;
 
@@ -22,9 +23,10 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
     }
 
     @Override
-    public boolean onHandler(H handler, H prevH, H nextH) {
+    public boolean onHandler(final H handler, final H prevH, final H nextH, final int handlerSeq) {
         this.prevH = prevH;
         this.nextH = nextH;
+        this.handlerSeq = handlerSeq;
         return runner.run(handler, this);
     }
 
@@ -53,6 +55,10 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
     @Override
     public H getNextHandler() {
         return nextH;
+    }
+
+    int getHandlerSeq() {
+        return handlerSeq;
     }
 
     @Override

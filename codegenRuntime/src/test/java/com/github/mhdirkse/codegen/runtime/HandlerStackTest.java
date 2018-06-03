@@ -5,6 +5,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.easymock.EasyMock.isNull;
+import static org.easymock.EasyMock.eq;
 
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -49,7 +50,7 @@ public class HandlerStackTest {
     public void testWhenOneHandlerThenVisited() {
         HandlerStub handler = new HandlerStub(true);
         instance.addFirst(handler);
-        expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(true);
+        expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class), eq(0))).andReturn(true);
         visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
@@ -60,7 +61,7 @@ public class HandlerStackTest {
     public void testWhenNotHandledThenException() {
         HandlerStub handler = new HandlerStub(true, "theHandler");
         instance.addFirst(handler);
-        expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(false);
+        expect(visitor.onHandler(same(handler), isNull(HandlerStub.class), isNull(HandlerStub.class), eq(0))).andReturn(false);
         visitor.afterStackVisited();
         replay(visitor);
         exception.expect(NotHandledException.class);
@@ -78,8 +79,8 @@ public class HandlerStackTest {
         HandlerStub second = new HandlerStub(true);
         instance.addFirst(second);
         instance.addFirst(first);
-        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
-        expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class))).andReturn(true);
+        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second), eq(0))).andReturn(false);
+        expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class), eq(1))).andReturn(true);
         visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
@@ -92,7 +93,7 @@ public class HandlerStackTest {
         HandlerStub second = new HandlerStub(true);
         instance.addFirst(second);
         instance.addFirst(first);
-        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(true);
+        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second), eq(0))).andReturn(true);
         visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
@@ -105,8 +106,8 @@ public class HandlerStackTest {
         HandlerStub second = new HandlerStub(true, "second");
         instance.addFirst(second);
         instance.addFirst(first);
-        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
-        expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class))).andReturn(false);
+        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second), eq(0))).andReturn(false);
+        expect(visitor.onHandler(same(second), same(first), isNull(HandlerStub.class), eq(1))).andReturn(false);
         visitor.afterStackVisited();
         replay(visitor);
         exception.expect(NotHandledException.class);
@@ -125,7 +126,7 @@ public class HandlerStackTest {
         instance.addFirst(second);
         instance.addFirst(first);
         instance.removeFirst();
-        expect(visitor.onHandler(same(second), isNull(HandlerStub.class), isNull(HandlerStub.class))).andReturn(true);
+        expect(visitor.onHandler(same(second), isNull(HandlerStub.class), isNull(HandlerStub.class), eq(0))).andReturn(true);
         visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);
@@ -140,9 +141,9 @@ public class HandlerStackTest {
         instance.addFirst(third);
         instance.addFirst(second);
         instance.addFirst(first);
-        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second))).andReturn(false);
-        expect(visitor.onHandler(same(second), same(first), same(third))).andReturn(false);
-        expect(visitor.onHandler(same(third), same(second), isNull(HandlerStub.class))).andReturn(true);
+        expect(visitor.onHandler(same(first), isNull(HandlerStub.class), same(second), eq(0))).andReturn(false);
+        expect(visitor.onHandler(same(second), same(first), same(third), eq(1))).andReturn(false);
+        expect(visitor.onHandler(same(third), same(second), isNull(HandlerStub.class), eq(2))).andReturn(true);
         visitor.afterStackVisited();
         replay(visitor);
         instance.run(visitor);

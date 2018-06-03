@@ -40,6 +40,7 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
         private H prevH = null;
         private H curH = null;
         private H nextH = null;
+        private int handlerSeq = 0;
 
         private boolean handled = false;
 
@@ -66,6 +67,7 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
             shift(nextHandlerOrNull);
             if (curH != null) {
                 handled = callHandlerVisitor();
+                ++handlerSeq;
             }
         }
 
@@ -76,7 +78,7 @@ public final class HandlerStack<H> implements HandlerStackManipulator<H> {
         }
 
         private boolean callHandlerVisitor() {
-            return handlerVisitor.onHandler(curH, prevH, nextH);
+            return handlerVisitor.onHandler(curH, prevH, nextH, handlerSeq);
         }
     }
 
