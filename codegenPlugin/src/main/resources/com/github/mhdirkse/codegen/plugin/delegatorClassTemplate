@@ -4,9 +4,11 @@ public class $targetDelegatorClassSimpleName implements $sourceInterface {
 
 private final com.github.mhdirkse.codegen.runtime.HandlerStack<$targetInterface> delegate;
 
-public $targetDelegatorClassSimpleName (final $targetInterface firstHandler) {
+public $targetDelegatorClassSimpleName (final $targetInterface ... firstHandlers) {
   this.delegate = new com.github.mhdirkse.codegen.runtime.HandlerStack<>();
-  this.delegate.addFirst(firstHandler);
+  for ($targetInterface firstHandler : firstHandlers) {
+    this.delegate.addFirst(firstHandler);
+  }
 }
  
 #foreach ($method in $methods)
