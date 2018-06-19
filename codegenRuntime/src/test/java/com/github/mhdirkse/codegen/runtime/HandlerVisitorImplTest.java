@@ -154,4 +154,45 @@ public class HandlerVisitorImplTest {
         instanceStackManipulating.afterStackVisited();
         verify(handlerStack);
     }
+
+    @Test
+    public void testWhenAddFirstRemoveAllPreceedingAndAfterStackVisitedThenAllRemoved() {
+        int handlerSeq = 0;
+        handlerStack.addFirst(first);
+        int numberToRemove = handlerSeq + 1;
+        handlerStack.removeFirst(numberToRemove);
+        replay(handlerStack);
+        instanceStackManipulating.onHandler(second, null, null, handlerSeq);
+        instanceStackManipulating.addFirst(first);
+        instanceStackManipulating.removeAllPreceeding();
+        instanceStackManipulating.afterStackVisited();
+        verify(handlerStack);
+    }
+
+    @Test
+    public void testWhenRemoveFirstRemoveAllPreceedingAndAfterStackVisitedThenAllRemoved() {
+        int handlerSeq = 1;
+        handlerStack.removeFirst();
+        int numberToRemove = handlerSeq - 1;
+        handlerStack.removeFirst(numberToRemove);
+        replay(handlerStack);
+        instanceStackManipulating.onHandler(second, first, null, handlerSeq);
+        instanceStackManipulating.removeFirst();
+        instanceStackManipulating.removeAllPreceeding();
+        instanceStackManipulating.afterStackVisited();
+        verify(handlerStack);
+    }
+
+    @Test
+    public void testWhenRemoveAllPreceedingTwoTimesThenAllRemoved() {
+        handlerStack.removeFirst(1);
+        handlerStack.removeFirst(1);
+        replay(handlerStack);
+        expect(instanceStackManipulating.onHandler(second, first, third, 1)).andReturn(false);
+        instanceStackManipulating.removeAllPreceeding();
+        expect(instanceStackManipulating.onHandler(third, second, null, 2)).andReturn(true);
+        instanceStackManipulating.removeAllPreceeding();
+        instanceStackManipulating.afterStackVisited();
+        verify(handlerStack);
+    }
 }

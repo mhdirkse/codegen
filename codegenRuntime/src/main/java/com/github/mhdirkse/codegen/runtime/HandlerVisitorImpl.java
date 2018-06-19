@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class HandlerVisitorImpl<H>
-implements HandlerVisitor<H>, HandlerStackContext<H> {
+implements HandlerVisitor<H>, HandlerStackContext<H>, HandlerStackChangeDefinition.Visitor<H> {
     private final HandlerRunner<H> runner;
 
     private H prevH;
@@ -13,7 +13,9 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
 
     private final HandlerStackManipulator<H> delegate;
 
-    private List<Runnable> handlerStackChanges = new ArrayList<>();
+    private List<HandlerStackChangeDefinition<H>> handlerStackChanges = new ArrayList<>();
+
+    private int numPreceedingOffset = 0;
 
     HandlerVisitorImpl(final HandlerRunner<H> runner, final HandlerStackManipulator<H> delegate) {
         this.runner = runner;
@@ -32,8 +34,9 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
 
     @Override
     public void afterStackVisited() {
-        for (Runnable r : handlerStackChanges) {
-            r.run();
+        numPreceedingOffset = 0;
+        for (HandlerStackChangeDefinition<H> ch : handlerStackChanges) {
+            ch.accept(this);
         }
     }
 
@@ -63,32 +66,34 @@ implements HandlerVisitor<H>, HandlerStackContext<H> {
 
     @Override
     public void addFirst(final H handler) {
-        handlerStackChanges.add(new Runnable() {
-            @Override
-            public void run() {
-                delegate.addFirst(handler);
-            }
-        });
+        handlerStackChanges.add(new HandlerStackChangeDefinition.AddFirst<H>(handlerSeq, handler));
     }
 
     @Override
     public void removeFirst() {
-        handlerStackChanges.add(new Runnable() {
-            @Override
-            public void run() {
-                delegate.removeFirst();
-            }
-        });
+        handlerStackChanges.add(new HandlerStackChangeDefinition.RemoveFirst<H>(handlerSeq));
     }
 
     @Override
     public void removeAllPreceeding() {
-        final int currentHandlerSeq = handlerSeq;
-        handlerStackChanges.add(new Runnable() {
-            @Override
-            public void run() {
-                delegate.removeFirst(currentHandlerSeq);        
-            }
-        });
+        handlerStackChanges.add(new HandlerStackChangeDefinition.RemoveAllPreceeding<H>(handlerSeq));
+    }
+
+    @Override
+    public void addFirstCmdExec(final int atSeq, final H handler) {
+        delegate.addFirst(handler);
+        numPreceedingOffset += 1;
+    }
+
+    @Override
+    public void removeFirstCmdExec(final int atSeq) {
+        delegate.removeFirst();
+        numPreceedingOffset -= 1;
+    }
+
+    @Override
+    public void removeAllPreceedingCmdExec(final int atSeq) {
+        delegate.removeFirst(atSeq + numPreceedingOffset);
+        numPreceedingOffset = (-atSeq);
     }
 }
