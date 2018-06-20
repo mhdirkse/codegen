@@ -17,8 +17,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import org.hamcrest.CoreMatchers;
-
 @RunWith(EasyMockRunner.class)
 public class HandlerStackTest {
     private HandlerStack<HandlerStub> instance;

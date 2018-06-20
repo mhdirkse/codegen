@@ -93,7 +93,14 @@ implements HandlerVisitor<H>, HandlerStackContext<H>, HandlerStackChangeDefiniti
 
     @Override
     public void removeAllPreceedingCmdExec(final int atSeq) {
-        delegate.removeFirst(atSeq + numPreceedingOffset);
+        int remainingNumPreceeding = atSeq + numPreceedingOffset;
+        if (remainingNumPreceeding >= 0) {
+            removeAllPreceedingUnchecked(atSeq, remainingNumPreceeding);
+        }
+    }
+
+    private void removeAllPreceedingUnchecked(final int atSeq, int remainingNumPreceeding) {
+        delegate.removeFirst(remainingNumPreceeding);
         numPreceedingOffset = (-atSeq);
     }
 }

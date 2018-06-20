@@ -195,4 +195,15 @@ public class HandlerVisitorImplTest {
         instanceStackManipulating.afterStackVisited();
         verify(handlerStack);
     }
+
+    @Test
+    public void testWhenSelfRemovedThenRemoveAllPreceedingDoesNothing() {
+        handlerStack.removeFirst();
+        replay(handlerStack);
+        instanceStackManipulating.onHandler(first, null, null, 0);
+        instanceStackManipulating.removeFirst();
+        instanceStackManipulating.removeAllPreceeding();
+        instanceStackManipulating.afterStackVisited();
+        verify(handlerStack);
+    }
 }
