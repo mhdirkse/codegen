@@ -4,7 +4,7 @@
   <groupId>com.github.mhdirkse</groupId>
   <artifactId>codegen</artifactId>
   <packaging>pom</packaging>
-  <version>1.4</version>
+  <version>1.5-SNAPSHOT</version>
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
