@@ -1,24 +1,24 @@
-package $targetPackage;
+package $target.package;
 
-public class $targetDelegatorClassSimpleName implements $sourceInterface {
+public class $target.simpleName implements $source.fullName {
 
-private final com.github.mhdirkse.codegen.runtime.HandlerStack<$targetInterface> delegate;
+private final com.github.mhdirkse.codegen.runtime.HandlerStack<$handler.fullName> delegate;
 
-public $targetDelegatorClassSimpleName (final $targetInterface ... firstHandlers) {
+public $target.simpleName (final $handler.fullName ... firstHandlers) {
   this.delegate = new com.github.mhdirkse.codegen.runtime.HandlerStack<>();
-  for ($targetInterface firstHandler : firstHandlers) {
+  for ($handler.fullName firstHandler : firstHandlers) {
     this.delegate.addFirst(firstHandler);
   }
 }
  
-#foreach ($method in $methods)
+#foreach ($method in $target.methods)
 @Override
-public void $method.name ($method.finalSignature) {
+public void $method.name ($method.formalParametersClass) {
   try {
-      delegate.run(new com.github.mhdirkse.codegen.runtime.HandlerRunner<$targetInterface>() {
+      delegate.run(new com.github.mhdirkse.codegen.runtime.HandlerRunner<$handler.fullName>() {
         @Override
-        public boolean run($targetInterface handler, com.github.mhdirkse.codegen.runtime.HandlerStackContext<$targetInterface> ctx) {
-          return handler.$method.name ($method.actualParametersForHandler);
+        public boolean run($handler.fullName handler, com.github.mhdirkse.codegen.runtime.HandlerStackContext<$handler.fullName> ctx) {
+          return handler.$method.name ($method.getActualParametersWith("ctx") );
         }
       });
   } catch (com.github.mhdirkse.codegen.runtime.NotHandledException e) {

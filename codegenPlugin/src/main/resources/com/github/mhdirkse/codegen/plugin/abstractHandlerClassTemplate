@@ -1,15 +1,15 @@
-package $targetPackage;
+package $target.package;
 
-public class $targetHandlerClassSimpleName implements $targetInterface {
+public class $target.simpleName implements $source.fullName {
 private final boolean defaultResult;
 
-public $targetHandlerClassSimpleName (final boolean defaultResult) {
+public $target.simpleName (final boolean defaultResult) {
   this.defaultResult = defaultResult;
 }
  
-#foreach ($method in $methods)
+#foreach ($method in $target.methods)
 @Override
-public boolean $method.name ($method.finalSignatureForHandler) {
+public boolean $method.name ($method.formalParametersClass) {
   return defaultResult;
 }
 #end

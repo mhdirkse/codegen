@@ -1,7 +1,7 @@
-package $targetPackage;
+package $target.package;
 
-public interface $targetInterfaceSimpleName {
-#foreach ($method in $methods)
-boolean $method.name ($method.signatureForHandler);
+public interface $target.simpleName {
+#foreach ($method in $target.methods)
+$method.returnType $method.name ($method.formalParametersInterface);
 #end
 }

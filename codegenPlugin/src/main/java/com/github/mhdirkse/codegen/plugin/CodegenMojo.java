@@ -7,7 +7,6 @@ import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -40,6 +39,8 @@ import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
 import org.sonatype.plexus.build.incremental.BuildContext;
+
+import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -131,50 +132,62 @@ public class CodegenMojo extends AbstractMojo {
 
     private VelocityContext getVelocityContextForJavaHandlerInterface(final Task task, final Method[] reflectionMethods) {
         VelocityContext result = new VelocityContext();
-        result.put("targetPackage", getPackageNameOfFullClassName(task.getHandler()));
-        result.put("targetInterfaceSimpleName", getSimpleNameOfFullClassName(task.getHandler()));
-        result.put("sourceInterface", task.getSource());
-        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
+        ClassModel source = getSourceClassModel(task, reflectionMethods);
+        ClassModel target = getJavaHandlerClassModel(task, source);        
+        result.put("target", target);
         return result;
     }
 
-    private String getPackageNameOfFullClassName(String javaPackageName) {
-        return javaPackageName.substring(0, javaPackageName.lastIndexOf('.'));
+    private ClassModel getSourceClassModel(final Task task, final Method[] reflectionMethods) {
+        ClassModel source = new ClassModel();
+        source.setFullName(task.getSource());
+        source.setMethods(reflectionMethods);
+        return source;
     }
 
-    private String getSimpleNameOfFullClassName(String javaPackageName) {
-        return javaPackageName.substring(
-                javaPackageName.lastIndexOf('.') + 1, javaPackageName.length());
+    private ClassModel getJavaHandlerClassModel(final Task task, ClassModel source) {
+        ClassModel target = new ClassModel(source);
+        target.setFullName(task.getHandler());
+        target.setReturnTypeForAllMethods("boolean");
+        target.addParameterTypeToAllMethods(
+                makeType("com.github.mhdirkse.codegen.runtime.HandlerStackContext", task.getHandler()));
+        return target;
     }
 
-    private void addReflectionMethodsToVelocityContext(
-            final Method[] reflectionMethods,
-            final VelocityContext result,
-            final String handlerStackTypeParameter) {
-        List<VelocityContextMethod> contextMethods = new ArrayList<>();
-        for (Method reflectionMethod : reflectionMethods) {
-            contextMethods.add(new VelocityContextMethod(reflectionMethod, handlerStackTypeParameter));
-        }
-        result.put("methods", contextMethods);
+    private String makeType(final String base, final String typeParameter) {
+        return base + "<" + typeParameter + ">";
     }
 
     private VelocityContext getVelocityContextForJavaAbstractHandler(final Task task, final Method[] reflectionMethods) {
         VelocityContext result = new VelocityContext();
-        result.put("targetPackage", getPackageNameOfFullClassName(task.getAbstractHandler()));
-        result.put("targetHandlerClassSimpleName", getSimpleNameOfFullClassName(task.getAbstractHandler()));
-        result.put("targetInterface", task.getHandler());
-        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
+        ClassModel source = getJavaHandlerClassModel(task, getSourceClassModel(task, reflectionMethods));
+        ClassModel target = getJavaAbstractHandlerClassModel(task, source);
+        result.put("source", source);
+        result.put("target", target);
         return result;
+    }
+
+    private ClassModel getJavaAbstractHandlerClassModel(final Task task, ClassModel source) {
+        ClassModel target = new ClassModel(source);
+        target.setFullName(task.getAbstractHandler());
+        return target;
     }
 
     private VelocityContext getVelocityContextForDelegator(final Task task, final Method[] reflectionMethods) {
         VelocityContext result = new VelocityContext();
-        result.put("targetPackage", getPackageNameOfFullClassName(task.getDelegator()));
-        result.put("targetDelegatorClassSimpleName", getSimpleNameOfFullClassName(task.getDelegator()));
-        result.put("sourceInterface", task.getSource());
-        result.put("targetInterface", task.getHandler());
-        addReflectionMethodsToVelocityContext(reflectionMethods, result, task.getHandler());
+        ClassModel source = getSourceClassModel(task, reflectionMethods);
+        ClassModel handler = getJavaHandlerClassModel(task, source);
+        ClassModel target = getJavaDelegatorClassModel(task, source);
+        result.put("source", source);
+        result.put("handler", handler);
+        result.put("target", target);
         return result;
+    }
+
+    private ClassModel getJavaDelegatorClassModel(final Task task, final ClassModel source) {
+        ClassModel target = new ClassModel(source);
+        target.setFullName(task.getDelegator());
+        return target;
     }
 
     private String getTemplatePath(final String simpleName) {
