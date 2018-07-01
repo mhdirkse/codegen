@@ -26,6 +26,10 @@ class CodegenListener extends CodegenBaseListener {
 
     private List<VelocityTask> tasks = new ArrayList<>();
 
+    List<VelocityTask> getTasks() {
+        return tasks;
+    }
+
     CodegenListener(final CodegenListenerHelper helper) {
         this.helper = helper;
     }
@@ -35,7 +39,12 @@ class CodegenListener extends CodegenBaseListener {
         String fullName = ctx.getChild(0).getText();
         Token startToken = ctx.getStart();
         ClassModel classModel = addClassVariable(fullName, startToken);
-        classModel.setMethods(helper.getMethods(classModel.getFullName()));
+        try {
+            classModel.setMethods(helper.getMethods(classModel.getFullName()));
+        }
+        catch (ClassNotFoundException e) {
+            throw new ParseCancellationException(e);
+        }
     }
 
     private ClassModel addClassVariable(String fullName, Token startToken) {
@@ -51,7 +60,7 @@ class CodegenListener extends CodegenBaseListener {
     }
 
     private String getMessage(final Token tok, final String text) {
-        return String.format("Line %d column %d: %s", tok.getLine(), tok.getCharPositionInLine(), text);
+        return Utils.getErrorMessage(tok.getLine(), tok.getCharPositionInLine(), text);
     }
 
     @Override
@@ -99,12 +108,14 @@ class CodegenListener extends CodegenBaseListener {
         handler.setEntryName("handler");
         handler.setClassModel(this.handler);
         createChain.setVelocityEntries(new ArrayList<>(Arrays.asList(source, target, handler)));
+        createChain.setOutputClassName(target.getClassModel().getFullName());
         VelocityTask createHandler = new VelocityTask();
         createHandler.setTemplateName("handlerInterfaceTemplate");
         VelocityEntry handlerAsTarget = new VelocityEntry();
         handlerAsTarget.setEntryName("target");
         handlerAsTarget.setClassModel(this.handler);
         createHandler.setVelocityEntries(new ArrayList<>(Arrays.asList(handlerAsTarget)));
+        createHandler.setOutputClassName(target.getClassModel().getFullName());
         tasks.addAll(Arrays.asList(createChain, createHandler));
         clearClassModels();
     }
@@ -126,6 +137,7 @@ class CodegenListener extends CodegenBaseListener {
         target.setEntryName("target");
         target.setClassModel(this.target);
         createImplementation.setVelocityEntries(new ArrayList<>(Arrays.asList(source, target)));
+        createImplementation.setOutputClassName(target.getClassModel().getFullName());
         tasks.add(createImplementation);
         clearClassModels();
     }

@@ -5,5 +5,5 @@ import java.util.List;
 import com.github.mhdirkse.codegen.plugin.model.MethodModel;
 
 interface CodegenListenerHelper {
-    List<MethodModel> getMethods(String fullClassName);
+    List<MethodModel> getMethods(String fullClassName) throws ClassNotFoundException;
 }
