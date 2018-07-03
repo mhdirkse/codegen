@@ -41,8 +41,16 @@ public class ClassModel {
         this.fullName = fullName;
     }
     public List<MethodModel> getMethods() {
-        return methods;
+        List<MethodModel> result = null;
+        if (methods != null) {
+            result = new ArrayList<>();
+            for (MethodModel method : methods) {
+                result.add(new MethodModel(method));
+            }
+        }
+        return result;
     }
+
     public void setMethods(List<MethodModel> methods) {
         this.methods = methods;
     }

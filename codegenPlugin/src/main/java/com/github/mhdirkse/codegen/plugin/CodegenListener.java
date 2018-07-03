@@ -36,7 +36,7 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void enterInputStatement(@NotNull CodegenParser.InputStatementContext ctx) {
-        String fullName = ctx.getChild(0).getText();
+        String fullName = ctx.getChild(1).getText();
         Token startToken = ctx.getStart();
         ClassModel classModel = addClassVariable(fullName, startToken);
         try {
@@ -65,7 +65,7 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void enterOutputStatement(@NotNull CodegenParser.OutputStatementContext ctx) {
-        String fullName = ctx.getChild(0).getText();
+        String fullName = ctx.getChild(1).getText();
         Token startToken = ctx.getStart();
         addClassVariable(fullName, startToken);
     }
@@ -96,28 +96,73 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitChainStatement(@NotNull CodegenParser.ChainStatementContext ctx) {
+        finishChain(target);
+        finishChainHandler(handler);
+        tasks.addAll(Arrays.asList(getVelocityTaskChain(), getVelocityTaskChainHandler()));
+        clearClassModels();
+    }
+
+    private void finishChain(final ClassModel chainToFinish) {
+        chainToFinish.setMethods(new ArrayList<>(source.getMethods()));
+        // TODO: Set return type.
+    }
+
+    private void finishChainHandler(final ClassModel chainHandlerToFinish) {
+        chainHandlerToFinish.setMethods(new ArrayList<>(source.getMethods()));
+        chainHandlerToFinish.setReturnTypeForAllMethods("boolean");
+        chainHandlerToFinish.addParameterTypeToAllMethods(
+                makeType("com.github.mhdirkse.codegen.runtime.HandlerStackContext", chainHandlerToFinish.getFullName()));
+    }
+
+    private String makeType(final String base, final String typeParameter) {
+        return base + "<" + typeParameter + ">";
+    }
+
+    private VelocityTask getVelocityTaskChain() {
         VelocityTask createChain = new VelocityTask();
         createChain.setTemplateName("delegatorClassTemplate");
+        createChain.setVelocityEntries(new ArrayList<>(Arrays.asList(
+                getVelocityEntrySource(),
+                getVelocityEntryTarget(),
+                getVelocityEntryHandler())));
+        createChain.setOutputClassName(target.getFullName());
+        return createChain;
+    }
+
+    private VelocityTask getVelocityTaskChainHandler() {
+        VelocityTask createHandler = new VelocityTask();
+        createHandler.setTemplateName("handlerInterfaceTemplate");
+        createHandler.setVelocityEntries(new ArrayList<>(Arrays.asList(getVelocityEntryHandlerAsTarget())));
+        createHandler.setOutputClassName(handler.getFullName());
+        return createHandler;
+    }
+
+    private VelocityEntry getVelocityEntrySource() {
         VelocityEntry source = new VelocityEntry();
         source.setEntryName("source");
         source.setClassModel(this.source);
+        return source;
+    }
+
+    private VelocityEntry getVelocityEntryTarget() {
         VelocityEntry target = new VelocityEntry();
         target.setEntryName("target");
         target.setClassModel(this.target);
+        return target;
+    }
+
+    private VelocityEntry getVelocityEntryHandler() {
         VelocityEntry handler = new VelocityEntry();
         handler.setEntryName("handler");
         handler.setClassModel(this.handler);
-        createChain.setVelocityEntries(new ArrayList<>(Arrays.asList(source, target, handler)));
-        createChain.setOutputClassName(target.getClassModel().getFullName());
-        VelocityTask createHandler = new VelocityTask();
-        createHandler.setTemplateName("handlerInterfaceTemplate");
+        return handler;
+    }
+
+    private VelocityEntry getVelocityEntryHandlerAsTarget() {
         VelocityEntry handlerAsTarget = new VelocityEntry();
         handlerAsTarget.setEntryName("target");
         handlerAsTarget.setClassModel(this.handler);
-        createHandler.setVelocityEntries(new ArrayList<>(Arrays.asList(handlerAsTarget)));
-        createHandler.setOutputClassName(target.getClassModel().getFullName());
-        tasks.addAll(Arrays.asList(createChain, createHandler));
-        clearClassModels();
+        return handlerAsTarget;
     }
 
     private void clearClassModels() {
@@ -128,17 +173,23 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitImplementStatement(@NotNull CodegenParser.ImplementStatementContext ctx) {
+        finishImplementation(target);
+        tasks.add(getVelocityTaskImplementation());
+        clearClassModels();
+    }
+
+    private VelocityTask getVelocityTaskImplementation() {
         VelocityTask createImplementation = new VelocityTask();
         createImplementation.setTemplateName("abstractHandlerClassTemplate");
-        VelocityEntry source = new VelocityEntry();
-        source.setEntryName("source");
-        source.setClassModel(this.source);
-        VelocityEntry target = new VelocityEntry();
-        target.setEntryName("target");
-        target.setClassModel(this.target);
-        createImplementation.setVelocityEntries(new ArrayList<>(Arrays.asList(source, target)));
-        createImplementation.setOutputClassName(target.getClassModel().getFullName());
-        tasks.add(createImplementation);
-        clearClassModels();
+        createImplementation.setVelocityEntries(new ArrayList<>(Arrays.asList(
+                getVelocityEntrySource(),
+                getVelocityEntryTarget())));
+        createImplementation.setOutputClassName(target.getFullName());
+        return createImplementation;
+    }
+
+    private void finishImplementation(final ClassModel implementationToFinish) {
+        implementationToFinish.setMethods(new ArrayList<>(source.getMethods()));
+        // TODO: Set return type.
     }
 }

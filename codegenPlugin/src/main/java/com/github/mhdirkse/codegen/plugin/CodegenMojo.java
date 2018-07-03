@@ -23,23 +23,6 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
-/*
- * Copyright 2001-2005 The Apache Software Foundation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -57,7 +40,6 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.github.mhdirkse.codegen.plugin.lang.CodegenLexer;
 import com.github.mhdirkse.codegen.plugin.lang.CodegenParser;
-import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 import com.github.mhdirkse.codegen.plugin.model.MethodModel;
 import com.github.mhdirkse.codegen.plugin.model.VelocityEntry;
 import com.github.mhdirkse.codegen.plugin.model.VelocityTask;
@@ -200,9 +182,14 @@ public class CodegenMojo extends AbstractMojo {
             }
             return result;
         }
+
+        @Override
+        public void logInfo(final String msg) {
+            getLog().info(msg);
+        }
     }
 
-    void createOutputFile(final VelocityTask task) {
+    void createOutputFile(final VelocityTask task) throws MojoExecutionException {
         VelocityContext ctx = new VelocityContext();
         for (VelocityEntry entry : task.getVelocityEntries()) {
             ctx.put(entry.getEntryName(), entry.getClassModel());
@@ -211,92 +198,6 @@ public class CodegenMojo extends AbstractMojo {
                 ctx,
                 getTemplatePath(task.getTemplateName()),
                 task.getOutputClassName());
-    }
-
-    private void handleTask(Task task, ClassRealm realm) throws MojoExecutionException {
-        Method[] reflectionMethods = processJavaInterface(task.getSource(), realm);
-        writeOutputFile(
-                getVelocityContextForJavaHandlerInterface(task, reflectionMethods),
-                getTemplatePath("handlerInterfaceTemplate"),
-                task.getHandler());
-        writeOutputFile(
-                getVelocityContextForJavaAbstractHandler(task, reflectionMethods),
-                getTemplatePath("abstractHandlerClassTemplate"),
-                task.getAbstractHandler());
-        writeOutputFile(
-                getVelocityContextForDelegator(task, reflectionMethods),
-                getTemplatePath("delegatorClassTemplate"),
-                task.getDelegator());
-    }
-
-    private Method[] processJavaInterface(String interfaceToProcess, ClassRealm realm) throws MojoExecutionException {
-        Class<?> myInterfaceClazz;
-        try {
-            myInterfaceClazz = realm.loadClass(interfaceToProcess);
-        } catch (ClassNotFoundException e) {
-            throw new MojoExecutionException("Class not found: " + interfaceToProcess);
-        }
-        return myInterfaceClazz.getMethods();
-    }
-
-    private VelocityContext getVelocityContextForJavaHandlerInterface(final Task task, final Method[] reflectionMethods) {
-        VelocityContext result = new VelocityContext();
-        ClassModel source = getSourceClassModel(task, reflectionMethods);
-        ClassModel target = getJavaHandlerClassModel(task, source);        
-        result.put("target", target);
-        return result;
-    }
-
-    private ClassModel getSourceClassModel(final Task task, final Method[] reflectionMethods) {
-        ClassModel source = new ClassModel();
-        source.setFullName(task.getSource());
-        source.setMethods(reflectionMethods);
-        return source;
-    }
-
-    private ClassModel getJavaHandlerClassModel(final Task task, ClassModel source) {
-        ClassModel target = new ClassModel(source);
-        target.setFullName(task.getHandler());
-        target.setReturnTypeForAllMethods("boolean");
-        target.addParameterTypeToAllMethods(
-                makeType("com.github.mhdirkse.codegen.runtime.HandlerStackContext", task.getHandler()));
-        return target;
-    }
-
-    private String makeType(final String base, final String typeParameter) {
-        return base + "<" + typeParameter + ">";
-    }
-
-    private VelocityContext getVelocityContextForJavaAbstractHandler(final Task task, final Method[] reflectionMethods) {
-        VelocityContext result = new VelocityContext();
-        ClassModel source = getJavaHandlerClassModel(task, getSourceClassModel(task, reflectionMethods));
-        ClassModel target = getJavaAbstractHandlerClassModel(task, source);
-        result.put("source", source);
-        result.put("target", target);
-        return result;
-    }
-
-    private ClassModel getJavaAbstractHandlerClassModel(final Task task, ClassModel source) {
-        ClassModel target = new ClassModel(source);
-        target.setFullName(task.getAbstractHandler());
-        return target;
-    }
-
-    private VelocityContext getVelocityContextForDelegator(final Task task, final Method[] reflectionMethods) {
-        VelocityContext result = new VelocityContext();
-        ClassModel source = getSourceClassModel(task, reflectionMethods);
-        ClassModel handler = getJavaHandlerClassModel(task, source);
-        ClassModel target = getJavaDelegatorClassModel(task, source);
-        result.put("source", source);
-        result.put("handler", handler);
-        result.put("target", target);
-        return result;
-    }
-
-    private ClassModel getJavaDelegatorClassModel(final Task task, final ClassModel source) {
-        ClassModel target = new ClassModel(source);
-        target.setFullName(task.getDelegator());
-        return target;
     }
 
     private String getTemplatePath(final String simpleName) {
@@ -342,11 +243,13 @@ public class CodegenMojo extends AbstractMojo {
             String templateFileName,
             String outputClass,
             File fileToWrite) throws IOException {
+        getLog().info(String.format("Applying template %s to create class %s in file %s",
+                templateFileName, outputClass, fileToWrite.toString()));
         fileToWrite.getParentFile().mkdirs();
         Template template = velocityComponent.getEngine().getTemplate(
                 templateFileName);        
         Writer writer = new OutputStreamWriter(
-                buildContext.newFileOutputStream(fileToWrite));
+                buildContext.newFileOutputStream(fileToWrite), sourceEncoding);
         template.merge(velocityContext, writer);
         return writer;
     }

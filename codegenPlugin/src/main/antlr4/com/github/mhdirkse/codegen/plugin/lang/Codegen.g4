@@ -1,6 +1,6 @@
 grammar Codegen;
 
-prog : statement ( ';' statement )* EOF ;
+prog : statement ( ';' statement )* ';'? EOF ;
 
 statement
   : 'input' fullClassNameInput # inputStatement

@@ -1,0 +1,7 @@
+input com.github.mhdirkse.codegen.test.input.MyInterface;
+output com.github.mhdirkse.codegen.test.output.MyInterfaceHandler;
+output com.github.mhdirkse.codegen.test.output.MyInterfaceAbstractHandler;
+output com.github.mhdirkse.codegen.test.output.MyInterfaceDelegator;
+
+implement MyInterface chain MyInterfaceDelegator with handler MyInterfaceHandler;
+implement MyInterfaceHandler in MyInterfaceAbstractHandler;
