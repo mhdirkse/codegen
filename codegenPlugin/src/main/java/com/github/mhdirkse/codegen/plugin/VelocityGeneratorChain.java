@@ -17,6 +17,7 @@ class VelocityGeneratorChain extends VelocityGeneratorBase {
     @Override
     public void run(final Map<String, ClassModel> variables) {
         super.run(variables);
+        velocityContext.put("source", variables.get(varReferences.getSource()));
         velocityContext.put("handler", variables.get(varReferences.getHandler()));
     }
 

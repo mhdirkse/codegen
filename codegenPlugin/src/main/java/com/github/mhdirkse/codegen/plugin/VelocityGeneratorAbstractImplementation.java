@@ -17,6 +17,7 @@ class VelocityGeneratorAbstractImplementation extends VelocityGeneratorBase {
     @Override
     public void run(final Map<String, ClassModel> variables) {
         super.run(variables);
+        velocityContext.put("source", variables.get(varReferences.getSource()));
         velocityContext.put("nonVoidCommonReturnType", getNonVoidReturnType(checkCommonReturnType(variables)));
     }
 

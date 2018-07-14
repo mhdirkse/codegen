@@ -27,7 +27,6 @@ abstract class VelocityGeneratorBase implements VelocityGenerator {
     @Override
     public void run(final Map<String, ClassModel> variables) {
         velocityContext = new VelocityContext();
-        velocityContext.put("source", variables.get(varReferences.getSource()));
         ClassModel targetClassModel = variables.get(varReferences.getTarget());
         velocityContext.put("target", targetClassModel);
         outputClass = targetClassModel.getFullName();

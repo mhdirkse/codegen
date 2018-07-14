@@ -3,8 +3,10 @@ package com.github.mhdirkse.codegen.plugin;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.NotNull;
@@ -20,6 +22,7 @@ class CodegenListener extends CodegenBaseListener {
     private List<VelocityGenerator> velocityGenerators = new ArrayList<>();
 
     VelocityGeneratorVarReferences varReferences = new VelocityGeneratorVarReferences();
+    Set<String> methods = new HashSet<>();
 
     List<VelocityGenerator> getVelocityGenerators() {
         return velocityGenerators;
@@ -96,14 +99,24 @@ class CodegenListener extends CodegenBaseListener {
     }
 
     @Override
+    public void enterMethod(@NotNull CodegenParser.MethodContext ctx) {
+        methods.add(ctx.getChild(0).getText());
+    }
+
+    @Override
     public void exitChainStatement(@NotNull CodegenParser.ChainStatementContext ctx) {
         finishChain();
         finishChainHandler();
         VelocityGeneratorVarReferences handlerReferences = getVarReferencesHandler();
         velocityGenerators.addAll(Arrays.asList(
                 new VelocityGeneratorChain(varReferences, ctx.getStart(), helper),
-                new VelocityGeneratorHandler(handlerReferences, ctx.getStart(), helper)));
+                new VelocityGeneratorInterface(handlerReferences, ctx.getStart(), helper)));
+        cleanForNextStatement();
+    }
+
+    private void cleanForNextStatement() {
         varReferences = new VelocityGeneratorVarReferences();
+        methods = new HashSet<>();
     }
 
     private void finishChain() {
@@ -139,7 +152,7 @@ class CodegenListener extends CodegenBaseListener {
                 variables.get(varReferences.getSource()), ctx.getStart());
         finishImplementation(commonReturnType);
         velocityGenerators.add(new VelocityGeneratorAbstractImplementation(varReferences, ctx.start, helper));
-        varReferences = new VelocityGeneratorVarReferences();
+        cleanForNextStatement();
     }
 
     private void finishImplementation(final String commonReturnType) {
@@ -147,5 +160,14 @@ class CodegenListener extends CodegenBaseListener {
         ClassModel target = variables.get(varReferences.getTarget());
         target.setMethods(new ArrayList<>(source.getMethods()));
         target.setReturnTypeForAllMethods(commonReturnType);
+    }
+
+    @Override
+    public void exitGenerateInterfaceStatement(@NotNull CodegenParser.GenerateInterfaceStatementContext ctx) {
+        ClassModel source = variables.get(varReferences.getSource());
+        ClassModel target = variables.get(varReferences.getTarget());
+        target.setMethods(source.selectMethods(methods));
+        velocityGenerators.add(new VelocityGeneratorInterface(varReferences, ctx.getStart(), helper));
+        cleanForNextStatement();
     }
 }

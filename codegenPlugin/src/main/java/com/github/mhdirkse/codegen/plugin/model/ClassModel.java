@@ -83,6 +83,16 @@ public class ClassModel {
         return result;
     }
 
+    public List<MethodModel> selectMethods(final Set<String> names) {
+        List<MethodModel> result = new ArrayList<>();
+        for (MethodModel method : methods) {
+            if(names.contains(method.getName())) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
     @Override
     public String toString() {
         return "ClassModel of " + getFullName();

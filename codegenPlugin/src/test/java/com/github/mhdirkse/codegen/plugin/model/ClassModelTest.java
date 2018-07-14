@@ -1,6 +1,9 @@
 package com.github.mhdirkse.codegen.plugin.model;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.hamcrest.CoreMatchers;
@@ -79,5 +82,13 @@ public class ClassModelTest extends MethodsUser {
     @Test
     public void testCanFormatNullIntoString() {
         Assert.assertEquals("null", String.format("%s", (String) null));
+    }
+
+    @Test
+    public void testSelectMethods() {
+        List<MethodModel> selectedMethods = instance.selectMethods(
+                new HashSet<String>(Arrays.asList("testMethodReturningVoid")));
+        Assert.assertEquals(1, selectedMethods.size());
+        Assert.assertEquals("testMethodReturningVoid", selectedMethods.get(0).getName());
     }
 }

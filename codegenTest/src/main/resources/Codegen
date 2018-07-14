@@ -3,8 +3,11 @@ output com.github.mhdirkse.codegen.test.output.MyInterfaceHandler;
 output com.github.mhdirkse.codegen.test.output.MyInterfaceAbstractHandler;
 output com.github.mhdirkse.codegen.test.output.MyInterfaceDelegator;
 output com.github.mhdirkse.codegen.test.output.AbstractMyInterface;
+output com.github.mhdirkse.codegen.test.output.MyInterfaceHandlerSelection;
 
 implement MyInterface chain MyInterfaceDelegator with handler MyInterfaceHandler;
 implement MyInterfaceHandler in MyInterfaceAbstractHandler;
 
 implement MyInterface in AbstractMyInterface;
+
+from MyInterfaceHandler generate MyInterfaceHandlerSelection methods firstMethod;
