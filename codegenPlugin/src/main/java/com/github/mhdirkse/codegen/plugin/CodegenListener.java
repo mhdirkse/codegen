@@ -43,6 +43,8 @@ class CodegenListener extends CodegenBaseListener {
             classModel.setMethods(helper.getMethods(classModel.getFullName()));
         }
         catch (ClassNotFoundException e) {
+            Token start = ctx.getStart();
+            helper.logError(start.getLine(), start.getCharPositionInLine(), "Could not find class: " + fullName);
             throw new ParseCancellationException(e);
         }
     }

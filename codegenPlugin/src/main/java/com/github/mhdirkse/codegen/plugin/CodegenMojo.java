@@ -15,6 +15,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.print.attribute.standard.Severity;
+
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -75,6 +77,7 @@ public class CodegenMojo extends AbstractMojo {
 
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
+        buildContext.removeMessages(codegenProgram);
         ClassRealm realm = getClassRealm();
         for (VelocityTask task : parseProgram(realm)) {
             createOutputFile(task);
@@ -162,6 +165,7 @@ public class CodegenMojo extends AbstractMojo {
         public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
                 String msg, RecognitionException e) {
             getLog().error(Utils.getErrorMessage(line, charPositionInLine, msg));
+            buildContext.addMessage(codegenProgram, line, charPositionInLine, msg, BuildContext.SEVERITY_ERROR, e);
         }
     }
 
@@ -186,6 +190,11 @@ public class CodegenMojo extends AbstractMojo {
         @Override
         public void logInfo(final String msg) {
             getLog().info(msg);
+        }
+
+        @Override
+        public void logError(final int line, final int column, final String msg) {
+            buildContext.addMessage(codegenProgram, line, column, msg, BuildContext.SEVERITY_ERROR, null);
         }
     }
 
