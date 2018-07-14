@@ -14,8 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.print.attribute.standard.Severity;
+import java.util.Map;
+import java.util.Set;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -23,8 +23,10 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.apache.commons.lang.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -42,9 +44,9 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.github.mhdirkse.codegen.plugin.lang.CodegenLexer;
 import com.github.mhdirkse.codegen.plugin.lang.CodegenParser;
+import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 import com.github.mhdirkse.codegen.plugin.model.MethodModel;
-import com.github.mhdirkse.codegen.plugin.model.VelocityEntry;
-import com.github.mhdirkse.codegen.plugin.model.VelocityTask;
+import com.google.common.collect.Iterables;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -79,9 +81,8 @@ public class CodegenMojo extends AbstractMojo {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         buildContext.removeMessages(codegenProgram);
         ClassRealm realm = getClassRealm();
-        for (VelocityTask task : parseProgram(realm)) {
-            createOutputFile(task);
-        }
+        CodegenListener listener = parseProgram(realm);
+        createOutputFiles(listener);
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
@@ -115,7 +116,7 @@ public class CodegenMojo extends AbstractMojo {
         }
     }
 
-    private List<VelocityTask> parseProgram(final ClassRealm realm) throws MojoExecutionException {
+    private CodegenListener parseProgram(final ClassRealm realm) throws MojoExecutionException {
         Reader programReader = getProgramReader();
         try {
             return parseProgramImpl(programReader, new CodegenListenerHelperImpl(realm));
@@ -137,7 +138,7 @@ public class CodegenMojo extends AbstractMojo {
         }
     }
 
-    private List<VelocityTask> parseProgramImpl(final Reader programReader, CodegenListenerHelper helper)
+    private CodegenListener parseProgramImpl(final Reader programReader, CodegenListenerHelper helper)
     throws MojoExecutionException
     {
         CodegenLexer lexer = null;
@@ -157,7 +158,7 @@ public class CodegenMojo extends AbstractMojo {
         ParseTreeWalker walker = new ParseTreeWalker();
         CodegenListener listener = new CodegenListener(helper);
         walker.walk(listener, parser.prog());
-        return listener.getTasks();
+        return listener;
     }
 
     private class ErrorListenerImpl extends ConsoleErrorListener {
@@ -196,17 +197,37 @@ public class CodegenMojo extends AbstractMojo {
         public void logError(final int line, final int column, final String msg) {
             buildContext.addMessage(codegenProgram, line, column, msg, BuildContext.SEVERITY_ERROR, null);
         }
+
+        @Override
+        public String checkCommonReturnType(final ClassModel source, final Token startToken) {
+            Set<String> returnTypes = source.getReturnTypes();
+            if (returnTypes.size() == 1) {
+                return Iterables.getOnlyElement(returnTypes);
+            }
+            else {
+                String msg = String.format("Methods of class %s have multiple return types: %s",
+                        source.getFullName(),
+                        StringUtils.join(returnTypes, ", "));
+                logError(startToken.getLine(), startToken.getCharPositionInLine(), msg);
+                throw new ParseCancellationException(msg);
+            }
+        }
     }
 
-    void createOutputFile(final VelocityTask task) throws MojoExecutionException {
-        VelocityContext ctx = new VelocityContext();
-        for (VelocityEntry entry : task.getVelocityEntries()) {
-            ctx.put(entry.getEntryName(), entry.getObject());
+    private void createOutputFiles(CodegenListener listener) throws MojoExecutionException {
+        for (VelocityGenerator generator : listener.getVelocityGenerators()) {
+            createOutputFile(generator, listener.getVariables());
         }
+    }
+
+    void createOutputFile(
+            final VelocityGenerator generator,
+            final Map<String, ClassModel> variables) throws MojoExecutionException {
+        generator.run(variables);
         writeOutputFile(
-                ctx,
-                getTemplatePath(task.getTemplateName()),
-                task.getOutputClassName());
+                generator.getVelocityContext(),
+                getTemplatePath(generator.getTemplateName()),
+                generator.getOutputClass());
     }
 
     private String getTemplatePath(final String simpleName) {
