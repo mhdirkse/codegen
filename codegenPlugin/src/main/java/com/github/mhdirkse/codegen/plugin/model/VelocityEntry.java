@@ -4,6 +4,16 @@ public class VelocityEntry {
     private String entryName;
     private ClassModel classModel;
 
+    public VelocityEntry() {
+        entryName = null;
+        classModel = null;
+    }
+
+    public VelocityEntry(final VelocityEntry other) {
+        this.entryName = other.entryName;
+        this.classModel = new ClassModel(other.getClassModel());
+    }
+
     public String getEntryName() {
         return entryName;
     }
@@ -11,9 +21,9 @@ public class VelocityEntry {
         this.entryName = entryName;
     }
     public ClassModel getClassModel() {
-        return classModel;
+        return new ClassModel(classModel);
     }
     public void setClassModel(ClassModel classModel) {
-        this.classModel = classModel;
+        this.classModel = new ClassModel(classModel);
     }
 }

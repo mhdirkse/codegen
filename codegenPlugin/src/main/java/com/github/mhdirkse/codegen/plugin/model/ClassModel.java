@@ -40,6 +40,7 @@ public class ClassModel {
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
+
     public List<MethodModel> getMethods() {
         List<MethodModel> result = null;
         if (methods != null) {
@@ -52,7 +53,13 @@ public class ClassModel {
     }
 
     public void setMethods(List<MethodModel> methods) {
-        this.methods = methods;
+        this.methods = null;
+        if (methods != null) {
+            this.methods = new ArrayList<>();
+            for (MethodModel method : methods) {
+                this.methods.add(new MethodModel(method));
+            }
+        }
     }
 
     public void setMethods(Method[] reflectionMethods) {
@@ -64,7 +71,7 @@ public class ClassModel {
 
     public void addParameterTypeToAllMethods(final String parameterType) {
         for (MethodModel m : methods) {
-            m.getParameterTypes().add(parameterType);
+            m.addParameterType(parameterType);
         }
     }
 
