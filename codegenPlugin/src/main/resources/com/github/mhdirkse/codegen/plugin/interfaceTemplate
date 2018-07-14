@@ -1,7 +1,9 @@
 package $target.package;
 
-public interface $target.simpleName {
+public interface $target.simpleName #if($target.superClass) extends $target.superClass #end
+{
 #foreach ($method in $target.methods)
+#if ($method.overridden) @Override #end
 $method.returnType $method.name ($method.formalParametersInterface);
 #end
 }

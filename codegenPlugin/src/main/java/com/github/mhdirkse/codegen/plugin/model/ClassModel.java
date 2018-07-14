@@ -9,6 +9,7 @@ import java.util.Set;
 public class ClassModel {
     private String fullName;
     private List<MethodModel> methods;
+    private String superClass;
 
     public ClassModel() {
         this.fullName = null;
@@ -91,6 +92,22 @@ public class ClassModel {
             }
         }
         return result;
+    }
+
+    public void setOverridden(final Set<String> names) {
+        for (MethodModel method : methods) {
+            if (names.contains(method.getName())) {
+                method.setOverridden(true);
+            }
+        }
+    }
+
+    public String getSuperClass() {
+        return superClass;
+    }
+
+    public void setSuperClass(final String superClass) {
+        this.superClass = superClass;
     }
 
     @Override

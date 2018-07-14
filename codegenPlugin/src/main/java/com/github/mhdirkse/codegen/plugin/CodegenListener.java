@@ -36,6 +36,10 @@ class CodegenListener extends CodegenBaseListener {
         this.helper = helper;
     }
 
+    boolean getHasErrors() {
+        return helper.getHasErrors();
+    }
+
     @Override
     public void enterInputStatement(@NotNull CodegenParser.InputStatementContext ctx) {
         String fullName = ctx.getChild(1).getText();
@@ -105,6 +109,10 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitChainStatement(@NotNull CodegenParser.ChainStatementContext ctx) {
+        Token startToken = ctx.getStart();
+        checkVariableExists(varReferences.getSource(), startToken);
+        checkVariableExists(varReferences.getTarget(), startToken);
+        checkVariableExists(varReferences.getHandler(), startToken);
         finishChain();
         finishChainHandler();
         VelocityGeneratorVarReferences handlerReferences = getVarReferencesHandler();
@@ -112,6 +120,12 @@ class CodegenListener extends CodegenBaseListener {
                 new VelocityGeneratorChain(varReferences, ctx.getStart(), helper),
                 new VelocityGeneratorInterface(handlerReferences, ctx.getStart(), helper)));
         cleanForNextStatement();
+    }
+
+    private void checkVariableExists(String varToCheck, Token startToken) {
+        if (!variables.containsKey(varToCheck)) {
+            helper.logError(startToken.getLine(), startToken.getCharPositionInLine(), "Unknown output class: " + varToCheck);
+        }
     }
 
     private void cleanForNextStatement() {
@@ -148,6 +162,9 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitImplementStatement(@NotNull CodegenParser.ImplementStatementContext ctx) {
+        Token startToken = ctx.getStart();
+        checkVariableExists(varReferences.getSource(), startToken);
+        checkVariableExists(varReferences.getTarget(), startToken);
         String commonReturnType = helper.checkCommonReturnType(
                 variables.get(varReferences.getSource()), ctx.getStart());
         finishImplementation(commonReturnType);
@@ -164,9 +181,26 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitGenerateInterfaceStatement(@NotNull CodegenParser.GenerateInterfaceStatementContext ctx) {
+        Token startToken = ctx.getStart();
+        checkVariableExists(varReferences.getSource(), startToken);
+        checkVariableExists(varReferences.getTarget(), startToken);
         ClassModel source = variables.get(varReferences.getSource());
         ClassModel target = variables.get(varReferences.getTarget());
         target.setMethods(source.selectMethods(methods));
+        velocityGenerators.add(new VelocityGeneratorInterface(varReferences, ctx.getStart(), helper));
+        cleanForNextStatement();
+    }
+
+    @Override
+    public void exitSuperInterfaceStatement(@NotNull CodegenParser.SuperInterfaceStatementContext ctx) {
+        Token startToken = ctx.getStart();
+        checkVariableExists(varReferences.getSource(), startToken);
+        checkVariableExists(varReferences.getTarget(), startToken);
+        ClassModel source = variables.get(varReferences.getSource());
+        ClassModel target = variables.get(varReferences.getTarget());
+        target.setMethods(source.selectMethods(methods));
+        source.setOverridden(methods);
+        source.setSuperClass(target.getFullName());
         velocityGenerators.add(new VelocityGeneratorInterface(varReferences, ctx.getStart(), helper));
         cleanForNextStatement();
     }

@@ -91,4 +91,13 @@ public class ClassModelTest extends MethodsUser {
         Assert.assertEquals(1, selectedMethods.size());
         Assert.assertEquals("testMethodReturningVoid", selectedMethods.get(0).getName());
     }
+
+    @Test
+    public void tesSetOverridden() {
+        instance.setOverridden(new HashSet<String>(Arrays.asList("testMethodReturningIntArray", "testMethodTwoParams")));
+        instanceMethods = getMethodsByNameMap(instance);
+        Assert.assertFalse(instanceMethods.get("testMethodReturningVoid").getOverridden());
+        Assert.assertTrue(instanceMethods.get("testMethodReturningIntArray").getOverridden());
+        Assert.assertTrue(instanceMethods.get("testMethodTwoParams").getOverridden());
+    }
 }

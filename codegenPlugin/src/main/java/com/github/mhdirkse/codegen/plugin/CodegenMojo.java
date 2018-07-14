@@ -82,7 +82,9 @@ public class CodegenMojo extends AbstractMojo {
         buildContext.removeMessages(codegenProgram);
         ClassRealm realm = getClassRealm();
         CodegenListener listener = parseProgram(realm);
-        createOutputFiles(listener);
+        if (!listener.getHasErrors()) {
+            createOutputFiles(listener);
+        }
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
@@ -172,6 +174,7 @@ public class CodegenMojo extends AbstractMojo {
 
     private class CodegenListenerHelperImpl implements CodegenListenerHelper {
         private final ClassRealm realm;
+        private boolean hasErrors = false;
 
         private CodegenListenerHelperImpl(final ClassRealm realm) {
             this.realm = realm;
@@ -196,6 +199,12 @@ public class CodegenMojo extends AbstractMojo {
         @Override
         public void logError(final int line, final int column, final String msg) {
             buildContext.addMessage(codegenProgram, line, column, msg, BuildContext.SEVERITY_ERROR, null);
+            hasErrors = true;
+        }
+
+        @Override
+        public boolean getHasErrors() {
+            return hasErrors;
         }
 
         @Override

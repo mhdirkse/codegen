@@ -10,6 +10,7 @@ public class MethodModel {
     private String name;
     private String returnType;
     private List<String> parameterTypes;
+    private boolean overridden = false;
 
     public MethodModel() {
     }
@@ -18,6 +19,7 @@ public class MethodModel {
         this.name = other.name;
         this.returnType = other.returnType;
         this.parameterTypes = copyParameterTypes(other.getParameterTypes());
+        this.overridden = other.overridden;
     }
 
     private static List<String> copyParameterTypes(final List<String> source) {
@@ -36,6 +38,7 @@ public class MethodModel {
         for (Class<?> reflectionParameterType : m.getParameterTypes()) {
             parameterTypes.add(reflectionParameterType.getCanonicalName());
         }
+        overridden = false;
     }
 
     public String getName() {
@@ -109,5 +112,13 @@ public class MethodModel {
 
     boolean sharesParameterTypesRef(final MethodModel other) {
         return parameterTypes == other.parameterTypes;
+    }
+
+    public boolean getOverridden() {
+        return overridden;
+    }
+
+    public void setOverridden(final boolean overridden) {
+        this.overridden = overridden;
     }
 }

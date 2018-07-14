@@ -6,6 +6,7 @@ statement
   : 'input' fullClassNameInput # inputStatement
   | 'output' fullClassNameOutput # outputStatement
   | 'from' source 'generate' target 'methods' methods # generateInterfaceStatement
+  | 'from' source 'super' target 'methods' methods # superInterfaceStatement
   | 'implement' source 'chain' target 'with' 'handler' handler # chainStatement
   | 'implement' source 'in' target # implementStatement
   ;

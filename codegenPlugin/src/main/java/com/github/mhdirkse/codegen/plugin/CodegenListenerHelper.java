@@ -12,4 +12,5 @@ interface CodegenListenerHelper {
     void logInfo(String message);
     void logError(final int line, final int column, final String msg);
     String checkCommonReturnType(final ClassModel source, final Token startToken);
+    boolean getHasErrors();
 }
