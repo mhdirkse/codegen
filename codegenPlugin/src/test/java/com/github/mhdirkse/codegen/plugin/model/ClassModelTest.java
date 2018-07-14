@@ -70,4 +70,14 @@ public class ClassModelTest extends MethodsUser {
         Map<String, MethodModel> methods = getMethodsByNameMap(instance);
         Assert.assertEquals("int[] p1, boolean p2", methods.get("testMethodReturningVoid").getFormalParametersInterface());
     }
+
+    @Test
+    public void testGetMethodReturnTypes() {
+        Assert.assertThat(instance.getReturnTypes(), CoreMatchers.hasItems("int[]", "void"));
+    }
+
+    @Test
+    public void testCanFormatNullIntoString() {
+        Assert.assertEquals("null", String.format("%s", (String) null));
+    }
 }

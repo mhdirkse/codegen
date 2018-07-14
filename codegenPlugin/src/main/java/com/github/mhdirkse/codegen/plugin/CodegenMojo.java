@@ -201,7 +201,7 @@ public class CodegenMojo extends AbstractMojo {
     void createOutputFile(final VelocityTask task) throws MojoExecutionException {
         VelocityContext ctx = new VelocityContext();
         for (VelocityEntry entry : task.getVelocityEntries()) {
-            ctx.put(entry.getEntryName(), entry.getClassModel());
+            ctx.put(entry.getEntryName(), entry.getObject());
         }
         writeOutputFile(
                 ctx,

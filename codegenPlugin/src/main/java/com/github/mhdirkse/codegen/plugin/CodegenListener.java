@@ -5,16 +5,19 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.apache.commons.lang.StringUtils;
 
 import com.github.mhdirkse.codegen.plugin.lang.CodegenBaseListener;
 import com.github.mhdirkse.codegen.plugin.lang.CodegenParser;
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 import com.github.mhdirkse.codegen.plugin.model.VelocityEntry;
 import com.github.mhdirkse.codegen.plugin.model.VelocityTask;
+import com.google.common.collect.Iterables;
 
 class CodegenListener extends CodegenBaseListener {
     private CodegenListenerHelper helper;
@@ -160,6 +163,21 @@ class CodegenListener extends CodegenBaseListener {
         return handler;
     }
 
+    private VelocityEntry getVelocityEntryCommonReturnType(final String commonReturnType) {
+        VelocityEntry result = new VelocityEntry();
+        result.setEntryName("nonVoidCommonReturnType");
+        result.setProperty(getNonVoidReturnType(commonReturnType));
+        return result;
+    }
+
+    private String getNonVoidReturnType(final String commonReturnType) {
+        String nonVoidCommonReturnType = null;
+        if (!commonReturnType.equals("void")) {
+            nonVoidCommonReturnType = commonReturnType;
+        }
+        return nonVoidCommonReturnType;
+    }
+
     private VelocityEntry getVelocityEntryHandlerAsTarget() {
         VelocityEntry handlerAsTarget = new VelocityEntry();
         handlerAsTarget.setEntryName("target");
@@ -175,23 +193,40 @@ class CodegenListener extends CodegenBaseListener {
 
     @Override
     public void exitImplementStatement(@NotNull CodegenParser.ImplementStatementContext ctx) {
-        finishImplementation(target);
-        tasks.add(getVelocityTaskImplementation());
+        String commonReturnType = checkCommonReturnType(ctx);
+        finishImplementation(target, commonReturnType);
+        tasks.add(getVelocityTaskImplementation(commonReturnType));
         clearClassModels();
     }
 
-    private VelocityTask getVelocityTaskImplementation() {
+    private String checkCommonReturnType(@NotNull CodegenParser.ImplementStatementContext ctx) {
+        Set<String> returnTypes = source.getReturnTypes();
+        if (returnTypes.size() == 1) {
+            return Iterables.getOnlyElement(returnTypes);
+        }
+        else {
+            String msg = String.format("Methods of class %s have multiple return types: %s",
+                    source.getFullName(),
+                    StringUtils.join(returnTypes, ", "));
+            Token start = ctx.getStart();
+            helper.logError(start.getLine(), start.getCharPositionInLine(), msg);
+            throw new ParseCancellationException(msg);
+        }
+    }
+
+    private VelocityTask getVelocityTaskImplementation(final String commonReturnType) {
         VelocityTask createImplementation = new VelocityTask();
-        createImplementation.setTemplateName("abstractHandlerClassTemplate");
+        createImplementation.setTemplateName("abstractImplementationTemplate");
         createImplementation.setVelocityEntries(new ArrayList<>(Arrays.asList(
                 getVelocityEntrySource(),
-                getVelocityEntryTarget())));
+                getVelocityEntryTarget(),
+                getVelocityEntryCommonReturnType(commonReturnType))));
         createImplementation.setOutputClassName(target.getFullName());
         return createImplementation;
     }
 
-    private void finishImplementation(final ClassModel implementationToFinish) {
+    private void finishImplementation(final ClassModel implementationToFinish, final String commonReturnType) {
         implementationToFinish.setMethods(new ArrayList<>(source.getMethods()));
-        // TODO: Set return type.
+        implementationToFinish.setReturnTypeForAllMethods(commonReturnType);
     }
 }

@@ -2,7 +2,9 @@ package com.github.mhdirkse.codegen.plugin.model;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ClassModel {
     private String fullName;
@@ -71,5 +73,18 @@ public class ClassModel {
         for (MethodModel m : methods) {
             m.setReturnType(returnType);
         }
+    }
+
+    public Set<String> getReturnTypes() {
+        Set<String> result = new HashSet<>();
+        for (MethodModel methodModel : methods) {
+            result.add(methodModel.getReturnType());
+        }
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ClassModel of " + getFullName();
     }
 }
