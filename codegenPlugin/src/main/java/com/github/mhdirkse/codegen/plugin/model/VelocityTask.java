@@ -42,4 +42,8 @@ public class VelocityTask {
     public void setOutputClassName(String outputClassName) {
         this.outputClassName = outputClassName;
     }
+
+    boolean isVelocityEntriesSame(final List<VelocityEntry> other) {
+        return velocityEntries == other;
+    }
 }

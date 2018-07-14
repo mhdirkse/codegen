@@ -11,6 +11,9 @@ public class MethodModel {
     private String returnType;
     private List<String> parameterTypes;
 
+    public MethodModel() {
+    }
+
     public MethodModel(final MethodModel other) {
         this.name = other.name;
         this.returnType = other.returnType;
@@ -98,5 +101,13 @@ public class MethodModel {
 
     public void addParameterType(final String parameterType) {
         parameterTypes.add(parameterType);
+    }
+
+    boolean isParameterTypesSame(final List<String> other) {
+        return parameterTypes == other;
+    }
+
+    boolean sharesParameterTypesRef(final MethodModel other) {
+        return parameterTypes == other.parameterTypes;
     }
 }

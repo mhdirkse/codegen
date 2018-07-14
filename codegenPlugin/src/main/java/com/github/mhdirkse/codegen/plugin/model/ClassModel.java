@@ -15,13 +15,18 @@ public class ClassModel {
 
     public ClassModel(final ClassModel other) {
         this.fullName = other.fullName;
-        this.methods = null;
-        if (other.methods != null) {
-            this.methods = new ArrayList<>();
-            for (MethodModel m : other.getMethods()) {
-                this.methods.add(new MethodModel(m));
+        this.methods = copyMethods(other.methods);
+    }
+
+    private static List<MethodModel> copyMethods(final List<MethodModel> source) {
+        List<MethodModel> result = null;
+        if (source != null) {
+            result = new ArrayList<>();
+            for (MethodModel method : source) {
+                result.add(new MethodModel(method));
             }
         }
+        return result;
     }
 
     public String getFullName() {
@@ -42,24 +47,11 @@ public class ClassModel {
     }
 
     public List<MethodModel> getMethods() {
-        List<MethodModel> result = null;
-        if (methods != null) {
-            result = new ArrayList<>();
-            for (MethodModel method : methods) {
-                result.add(new MethodModel(method));
-            }
-        }
-        return result;
+        return copyMethods(methods);
     }
 
     public void setMethods(List<MethodModel> methods) {
-        this.methods = null;
-        if (methods != null) {
-            this.methods = new ArrayList<>();
-            for (MethodModel method : methods) {
-                this.methods.add(new MethodModel(method));
-            }
-        }
+        this.methods = copyMethods(methods);
     }
 
     public void setMethods(Method[] reflectionMethods) {
