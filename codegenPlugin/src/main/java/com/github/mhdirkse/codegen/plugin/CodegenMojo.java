@@ -1,32 +1,17 @@
 package com.github.mhdirkse.codegen.plugin;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.antlr.v4.runtime.ANTLRErrorListener;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ConsoleErrorListener;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.apache.commons.lang.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -42,17 +27,14 @@ import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
-import com.github.mhdirkse.codegen.plugin.lang.CodegenLexer;
-import com.github.mhdirkse.codegen.plugin.lang.CodegenParser;
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 import com.github.mhdirkse.codegen.plugin.model.MethodModel;
-import com.google.common.collect.Iterables;
 
 /**
  * Goal which generates .java files from POJO description files.
  */
 @Mojo(name = "codegen", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE, requiresProject = true)
-public class CodegenMojo extends AbstractMojo {
+public class CodegenMojo extends AbstractMojo implements Logger {
     @Component
     private MavenProject project;
 
@@ -71,20 +53,48 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.sourceEncoding}")
     private String sourceEncoding;
 
-    @Parameter(defaultValue = "${project.build.resources[0].directory}/Codegen")
-    private File codegenProgram;
-
     @Parameter
-    List<Task> tasks;
+    public String program;
+
+    @Override
+    public void info(final String msg) {
+        getLog().info(msg);
+    }
+
+    @Override
+    public void error(final String msg) {
+        getLog().error(msg);
+    }
 
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
-        buildContext.removeMessages(codegenProgram);
-        ClassRealm realm = getClassRealm();
-        CodegenListener listener = parseProgram(realm);
-        if (!listener.getHasErrors()) {
-            createOutputFiles(listener);
+        CodegenProgram instantiatedProgram = instantiate(program, CodegenProgram.class);
+        Map<String, ClassModel> variables = getInitialVariables(instantiatedProgram);
+        instantiatedProgram.setLogger(this);
+        instantiatedProgram.run(variables);
+        createOutputFiles(instantiatedProgram.getGenerators(), variables);
+    }
+
+    private <T> T instantiate(final String className, final Class<T> type) throws MojoExecutionException {
+        try{
+            return type.cast(type.getClassLoader().loadClass(className).newInstance());
+        } catch(InstantiationException
+              | IllegalAccessException
+              | ClassNotFoundException e){
+            String errorMsg = "Could not instantiate input program: ";
+            getLog().error(errorMsg + program, e);
+            throw new MojoExecutionException(errorMsg, e);
         }
+    }
+
+    private Map<String, ClassModel> getInitialVariables(final CodegenProgram instantiatedProgram) throws MojoExecutionException {
+        ClassRealm realm = getClassRealm();
+        Map<String, ClassModel> variables = new HashMap<>();
+        for (String source : instantiatedProgram.getSourceClasses()) {
+            ClassModel variable = getClassModel(source, realm);
+            variables.put(variable.getSimpleName(), variable);
+        }
+        return variables;
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
@@ -118,114 +128,38 @@ public class CodegenMojo extends AbstractMojo {
         }
     }
 
-    private CodegenListener parseProgram(final ClassRealm realm) throws MojoExecutionException {
-        Reader programReader = getProgramReader();
+    private ClassModel getClassModel(final String source, final ClassRealm realm) 
+            throws MojoExecutionException {
+        ClassModel result = new ClassModel();
+        result.setFullName(source);
         try {
-            return parseProgramImpl(programReader, new CodegenListenerHelperImpl(realm));
+            result.setMethods(getMethods(source, realm));
         }
-        catch(ParseCancellationException e) {
-            getLog().error(e);
-            throw new MojoExecutionException("Could not parse program", e);
+        catch(ClassNotFoundException e) {
+            String msg = String.format("Program %s references class that is not available: %s",
+                    program, source);
+            getLog().error(msg);
+            throw new MojoExecutionException(msg, e);
         }
+        return result;
     }
 
-    private Reader getProgramReader() throws MojoExecutionException {
-        try {
-            InputStream in = new FileInputStream(codegenProgram);
-            return new BufferedReader(
-                    new InputStreamReader(in, sourceEncoding));
+    private List<MethodModel> getMethods(final String fullClassName, final ClassRealm realm)
+            throws ClassNotFoundException {
+        Class<?> clazz = realm.loadClass(fullClassName);
+        Method[] reflectionMethods = clazz.getMethods();
+        List<MethodModel> result = new ArrayList<>();
+        for (Method reflectionMethod : reflectionMethods) {
+            result.add(new MethodModel(reflectionMethod));
         }
-        catch(final IOException e) {
-            throw new MojoExecutionException("Codegen program file could not be opened: " + codegenProgram, e);
-        }
+        return result;
     }
 
-    private CodegenListener parseProgramImpl(final Reader programReader, CodegenListenerHelper helper)
-    throws MojoExecutionException
-    {
-        CodegenLexer lexer = null;
-        try {
-            lexer = new CodegenLexer(new ANTLRInputStream(programReader));
-        }
-        catch(final IOException e) {
-            throw new MojoExecutionException("IO error while reading program file " + codegenProgram, e);
-        }
-        lexer.removeErrorListeners();
-        ANTLRErrorListener errorListener = new ErrorListenerImpl();
-        lexer.addErrorListener(errorListener);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        CodegenParser parser = new CodegenParser(tokens);
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-        ParseTreeWalker walker = new ParseTreeWalker();
-        CodegenListener listener = new CodegenListener(helper);
-        walker.walk(listener, parser.prog());
-        return listener;
-    }
-
-    private class ErrorListenerImpl extends ConsoleErrorListener {
-        @Override
-        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
-                String msg, RecognitionException e) {
-            getLog().error(Utils.getErrorMessage(line, charPositionInLine, msg));
-            buildContext.addMessage(codegenProgram, line, charPositionInLine, msg, BuildContext.SEVERITY_ERROR, e);
-        }
-    }
-
-    private class CodegenListenerHelperImpl implements CodegenListenerHelper {
-        private final ClassRealm realm;
-        private boolean hasErrors = false;
-
-        private CodegenListenerHelperImpl(final ClassRealm realm) {
-            this.realm = realm;
-        }
-
-        @Override
-        public List<MethodModel> getMethods(final String fullClassName) throws ClassNotFoundException {
-            Class<?> clazz = realm.loadClass(fullClassName);
-            Method[] reflectionMethods = clazz.getMethods();
-            List<MethodModel> result = new ArrayList<>();
-            for (Method reflectionMethod : reflectionMethods) {
-                result.add(new MethodModel(reflectionMethod));
-            }
-            return result;
-        }
-
-        @Override
-        public void logInfo(final String msg) {
-            getLog().info(msg);
-        }
-
-        @Override
-        public void logError(final int line, final int column, final String msg) {
-            buildContext.addMessage(codegenProgram, line, column, msg, BuildContext.SEVERITY_ERROR, null);
-            hasErrors = true;
-        }
-
-        @Override
-        public boolean getHasErrors() {
-            return hasErrors;
-        }
-
-        @Override
-        public String checkCommonReturnType(final ClassModel source, final Token startToken) {
-            Set<String> returnTypes = source.getReturnTypes();
-            if (returnTypes.size() == 1) {
-                return Iterables.getOnlyElement(returnTypes);
-            }
-            else {
-                String msg = String.format("Methods of class %s have multiple return types: %s",
-                        source.getFullName(),
-                        StringUtils.join(returnTypes, ", "));
-                logError(startToken.getLine(), startToken.getCharPositionInLine(), msg);
-                throw new ParseCancellationException(msg);
-            }
-        }
-    }
-
-    private void createOutputFiles(CodegenListener listener) throws MojoExecutionException {
-        for (VelocityGenerator generator : listener.getVelocityGenerators()) {
-            createOutputFile(generator, listener.getVariables());
+    private void createOutputFiles(
+            List<VelocityGenerator> generators,
+            Map<String, ClassModel> variables) throws MojoExecutionException {
+        for (VelocityGenerator generator : generators) {
+            createOutputFile(generator, variables);
         }
     }
 

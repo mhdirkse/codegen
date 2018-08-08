@@ -6,7 +6,7 @@ import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 
-interface VelocityGenerator {
+public interface VelocityGenerator {
     void run(Map<String, ClassModel> variables);
     String getTemplateName();
     VelocityContext getVelocityContext();

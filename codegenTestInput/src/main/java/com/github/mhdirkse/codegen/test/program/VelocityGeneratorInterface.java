@@ -1,13 +1,15 @@
-package com.github.mhdirkse.codegen.plugin;
+package com.github.mhdirkse.codegen.test.program;
 
 import org.antlr.v4.runtime.Token;
+
+import com.github.mhdirkse.codegen.plugin.Logger;
 
 class VelocityGeneratorInterface extends VelocityGeneratorBase {
     VelocityGeneratorInterface(
             final VelocityGeneratorVarReferences varReferences,
             final Token startToken,
-            final CodegenListenerHelper helper) {
-        super(varReferences, startToken, helper);
+            final Logger logger) {
+        super(varReferences, startToken, logger);
     }
 
     @Override

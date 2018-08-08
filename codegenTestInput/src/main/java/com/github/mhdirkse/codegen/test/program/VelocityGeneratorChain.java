@@ -1,17 +1,18 @@
-package com.github.mhdirkse.codegen.plugin;
+package com.github.mhdirkse.codegen.test.program;
 
 import java.util.Map;
 
 import org.antlr.v4.runtime.Token;
 
+import com.github.mhdirkse.codegen.plugin.Logger;
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 
 class VelocityGeneratorChain extends VelocityGeneratorBase {
     VelocityGeneratorChain(
             final VelocityGeneratorVarReferences varReferences,
             final Token startToken,
-            final CodegenListenerHelper helper) {
-        super(varReferences, startToken, helper);
+            final Logger logger) {
+        super(varReferences, startToken, logger);
     }
 
     @Override

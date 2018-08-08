@@ -1,4 +1,4 @@
-package com.github.mhdirkse.codegen.plugin;
+package com.github.mhdirkse.codegen.test.program;
 
 class VelocityGeneratorVarReferences {
     private String source;

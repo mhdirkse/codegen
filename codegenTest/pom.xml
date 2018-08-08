@@ -5,7 +5,7 @@
   <packaging>jar</packaging>
   <name>codegenTest</name>
   <url>http://maven.apache.org</url>
-    <parent>
+  <parent>
     <groupId>com.github.mhdirkse</groupId>
     <artifactId>codegen</artifactId>
     <version>1.5-SNAPSHOT</version>
@@ -35,14 +35,7 @@
         <artifactId>codegenPlugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <tasks>
-            <task>
-              <source>com.github.mhdirkse.codegen.test.input.MyInterface</source>
-              <handler>com.github.mhdirkse.codegen.test.output.MyInterfaceHandler</handler>
-              <abstractHandler>com.github.mhdirkse.codegen.test.output.MyInterfaceAbstractHandler</abstractHandler>
-              <delegator>com.github.mhdirkse.codegen.test.output.MyInterfaceDelegator</delegator>
-            </task>
-          </tasks>
+          <program>com.github.mhdirkse.codegen.test.program.InputProgram</program>
         </configuration>
         <executions>
           <execution>
@@ -51,6 +44,13 @@
             </goals>
           </execution>
         </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.github.mhdirkse</groupId>
+            <artifactId>codegenTestInput</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

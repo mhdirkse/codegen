@@ -1,16 +1,18 @@
-package com.github.mhdirkse.codegen.plugin;
+package com.github.mhdirkse.codegen.test.program;
 
 import java.util.Map;
 
 import org.antlr.v4.runtime.Token;
 import org.apache.velocity.VelocityContext;
 
+import com.github.mhdirkse.codegen.plugin.Logger;
+import com.github.mhdirkse.codegen.plugin.VelocityGenerator;
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 
 abstract class VelocityGeneratorBase implements VelocityGenerator {
     final VelocityGeneratorVarReferences varReferences;
     final Token startToken;
-    final CodegenListenerHelper helper;
+    final Logger logger;
 
     VelocityContext velocityContext;
     private String outputClass;
@@ -18,10 +20,10 @@ abstract class VelocityGeneratorBase implements VelocityGenerator {
     VelocityGeneratorBase(
             final VelocityGeneratorVarReferences varReferences,
             final Token startToken,
-            final CodegenListenerHelper helper) {
+            final Logger logger) {
         this.varReferences = varReferences;
         this.startToken = startToken;
-        this.helper = helper;
+        this.logger = logger;
     }
 
     @Override
@@ -40,9 +42,5 @@ abstract class VelocityGeneratorBase implements VelocityGenerator {
     @Override
     public final String getOutputClass() {
         return outputClass;
-    }
-
-    String checkCommonReturnType(Map<String, ClassModel> variables) {
-        return helper.checkCommonReturnType(variables.get(varReferences.getSource()), startToken);
     }
 }
