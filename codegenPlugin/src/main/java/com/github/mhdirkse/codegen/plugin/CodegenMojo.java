@@ -169,12 +169,8 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         generator.run(variables);
         writeOutputFile(
                 generator.getVelocityContext(),
-                getTemplatePath(generator.getTemplateName()),
+                generator.getTemplateName(),
                 generator.getOutputClass());
-    }
-
-    private String getTemplatePath(final String simpleName) {
-        return "com/github/mhdirkse/codegen/plugin/" + simpleName;
     }
 
     private void writeOutputFile(
