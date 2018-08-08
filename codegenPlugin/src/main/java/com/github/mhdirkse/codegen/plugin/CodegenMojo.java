@@ -4,13 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -25,8 +25,11 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
+import org.reflections.ReflectionUtils;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
+import com.github.mhdirkse.codegen.annotations.Input;
+import com.github.mhdirkse.codegen.annotations.Output;
 import com.github.mhdirkse.codegen.plugin.model.ClassModel;
 import com.github.mhdirkse.codegen.plugin.model.MethodModel;
 
@@ -69,10 +72,11 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         CodegenProgram instantiatedProgram = instantiate(program, CodegenProgram.class);
-        Map<String, ClassModel> variables = getInitialVariables(instantiatedProgram);
-        instantiatedProgram.setLogger(this);
-        instantiatedProgram.run(variables);
-        createOutputFiles(instantiatedProgram.getGenerators(), variables);
+        ClassRealm realm = getClassRealm();
+        populateProgramInputs(instantiatedProgram, realm);
+        populateOutputFields(instantiatedProgram);
+        instantiatedProgram.run();
+        createOutputFiles(instantiatedProgram);
     }
 
     private <T> T instantiate(final String className, final Class<T> type) throws MojoExecutionException {
@@ -85,16 +89,6 @@ public class CodegenMojo extends AbstractMojo implements Logger {
             getLog().error(errorMsg + program, e);
             throw new MojoExecutionException(errorMsg, e);
         }
-    }
-
-    private Map<String, ClassModel> getInitialVariables(final CodegenProgram instantiatedProgram) throws MojoExecutionException {
-        ClassRealm realm = getClassRealm();
-        Map<String, ClassModel> variables = new HashMap<>();
-        for (String source : instantiatedProgram.getSourceClasses()) {
-            ClassModel variable = getClassModel(source, realm);
-            variables.put(variable.getSimpleName(), variable);
-        }
-        return variables;
     }
 
     private ClassRealm getClassRealm() throws MojoExecutionException {
@@ -128,6 +122,41 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
+    private void populateProgramInputs(
+            final CodegenProgram program,
+            final ClassRealm realm) 
+                    throws MojoExecutionException {
+        try {
+            populateProgramInputsUnchecked(program, realm);
+        }
+        catch(IllegalAccessException e) {
+            String msg = "This cannot happen";
+            getLog().error(msg, e);
+            throw new MojoExecutionException(msg, e);
+        }
+    }
+
+    private void populateProgramInputsUnchecked(
+            final CodegenProgram program,
+            final ClassRealm realm) 
+                    throws IllegalAccessException, MojoExecutionException {
+        for (Field inputField : getInputFields(program)) {
+            Input annotation = inputField.getAnnotation(Input.class);
+            String source = annotation.value();
+            inputField.set(program, getClassModel(source, realm));
+        }
+    }
+
+    private Set<Field> getInputFields(final CodegenProgram program) {
+        @SuppressWarnings("unchecked")
+        Set<Field> inputFields = ReflectionUtils.getAllFields(
+                program.getClass(),
+                ReflectionUtils.withTypeAssignableTo(ClassModel.class),
+                ReflectionUtils.withAnnotation(Input.class));
+        return inputFields;
+    }
+
+
     private ClassModel getClassModel(final String source, final ClassRealm realm) 
             throws MojoExecutionException {
         ClassModel result = new ClassModel();
@@ -155,22 +184,54 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         return result;
     }
 
-    private void createOutputFiles(
-            List<VelocityGenerator> generators,
-            Map<String, ClassModel> variables) throws MojoExecutionException {
-        for (VelocityGenerator generator : generators) {
-            createOutputFile(generator, variables);
+    private void populateOutputFields(final CodegenProgram program)
+            throws MojoExecutionException {
+        try {
+            populateOutputFieldsUnchecked(program);
+        }
+        catch(IllegalAccessException e) {
+            String msg = "Could not initialize output field with velocity context";
+            getLog().error(msg, e);
+            throw new MojoExecutionException(msg, e);
         }
     }
 
-    void createOutputFile(
-            final VelocityGenerator generator,
-            final Map<String, ClassModel> variables) throws MojoExecutionException {
-        generator.run(variables);
-        writeOutputFile(
-                generator.getVelocityContext(),
-                generator.getTemplateName(),
-                generator.getOutputClass());
+    private void populateOutputFieldsUnchecked(final CodegenProgram program) 
+            throws MojoExecutionException, IllegalAccessException {
+        for(Field outputField : getOutputFields(program)) {
+            outputField.set(program, new VelocityContext());
+        }
+    }
+
+    private Set<Field> getOutputFields(final CodegenProgram program) {
+        @SuppressWarnings("unchecked")
+        Set<Field> outputFields = ReflectionUtils.getAllFields(
+                program.getClass(),
+                ReflectionUtils.withTypeAssignableTo(VelocityContext.class),
+                ReflectionUtils.withAnnotation(Output.class));
+        return outputFields;
+    }
+
+    private void createOutputFiles(final CodegenProgram program) throws MojoExecutionException {
+        try {
+            createOutputFilesUnchecked(program);
+        } catch (IllegalAccessException e) {
+            String msg = "Output is not a velocity context";
+            getLog().error(msg, e);
+            throw new MojoExecutionException(msg, e);
+        }
+    }
+
+    private void createOutputFilesUnchecked(final CodegenProgram program)
+            throws MojoExecutionException, IllegalAccessException {
+        for (Field outputField : getOutputFields(program)) {
+            Output annotation = outputField.getAnnotation(Output.class);
+            String template = annotation.value();
+            VelocityContext velocityContext = (VelocityContext) outputField.get(program);
+            ClassModel outputClassModel = (ClassModel) velocityContext.get("target");
+            String outputFile = outputClassModel.getFullName();
+            writeOutputFile(velocityContext, template, outputFile);
+        }
     }
 
     private void writeOutputFile(
