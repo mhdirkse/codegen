@@ -47,7 +47,7 @@
         <dependencies>
           <dependency>
             <groupId>com.github.mhdirkse</groupId>
-            <artifactId>codegenTestInput</artifactId>
+            <artifactId>codegenTestProgram</artifactId>
             <version>${project.version}</version>
           </dependency>
         </dependencies>
