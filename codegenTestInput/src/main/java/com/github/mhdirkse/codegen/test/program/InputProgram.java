@@ -4,10 +4,10 @@ import java.util.ArrayList;
 
 import org.apache.velocity.VelocityContext;
 
-import com.github.mhdirkse.codegen.annotations.Input;
-import com.github.mhdirkse.codegen.annotations.Output;
-import com.github.mhdirkse.codegen.plugin.CodegenProgram;
-import com.github.mhdirkse.codegen.plugin.model.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.Input;
+import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.compiletime.CodegenProgram;
+import com.github.mhdirkse.codegen.compiletime.ClassModel;
 
 public class InputProgram implements CodegenProgram {
     private static final String OUTPUT_PACKAGE = "com.github.mhdirkse.codegen.test.output.";

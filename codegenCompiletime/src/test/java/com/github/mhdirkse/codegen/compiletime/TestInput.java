@@ -1,4 +1,4 @@
-package com.github.mhdirkse.codegen.plugin.model;
+package com.github.mhdirkse.codegen.compiletime;
 
 interface TestInput {
     void testMethodReturningVoid(final int[] parameter);

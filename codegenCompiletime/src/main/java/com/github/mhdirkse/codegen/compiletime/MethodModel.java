@@ -1,10 +1,10 @@
-package com.github.mhdirkse.codegen.plugin.model;
+package com.github.mhdirkse.codegen.compiletime;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class MethodModel {
     private String name;

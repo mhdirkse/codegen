@@ -1,4 +1,4 @@
-package com.github.mhdirkse.codegen.plugin.model;
+package com.github.mhdirkse.codegen.compiletime;
 
 import org.junit.Test;
 import org.hamcrest.CoreMatchers;

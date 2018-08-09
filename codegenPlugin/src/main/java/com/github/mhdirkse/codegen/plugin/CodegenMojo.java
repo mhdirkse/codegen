@@ -28,10 +28,11 @@ import org.codehaus.plexus.velocity.VelocityComponent;
 import org.reflections.ReflectionUtils;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
-import com.github.mhdirkse.codegen.annotations.Input;
-import com.github.mhdirkse.codegen.annotations.Output;
-import com.github.mhdirkse.codegen.plugin.model.ClassModel;
-import com.github.mhdirkse.codegen.plugin.model.MethodModel;
+import com.github.mhdirkse.codegen.compiletime.Input;
+import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.compiletime.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.MethodModel;
+import com.github.mhdirkse.codegen.compiletime.CodegenProgram;
 
 /**
  * Goal which generates .java files from POJO description files.

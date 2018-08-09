@@ -13,7 +13,7 @@
   <dependencies>
     <dependency>
       <groupId>com.github.mhdirkse</groupId>
-      <artifactId>codegenPlugin</artifactId>
+      <artifactId>codegenCompiletime</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

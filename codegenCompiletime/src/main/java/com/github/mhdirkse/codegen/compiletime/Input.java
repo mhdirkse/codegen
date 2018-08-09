@@ -1,4 +1,4 @@
-package com.github.mhdirkse.codegen.annotations;
+package com.github.mhdirkse.codegen.compiletime;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
