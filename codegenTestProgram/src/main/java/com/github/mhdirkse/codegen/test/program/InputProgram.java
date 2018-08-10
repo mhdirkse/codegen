@@ -1,7 +1,5 @@
 package com.github.mhdirkse.codegen.test.program;
 
-import java.util.ArrayList;
-
 import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.compiletime.Input;
