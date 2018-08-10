@@ -11,7 +11,6 @@ public class MethodModelTest extends MethodsUser {
         Assert.assertEquals("testMethodReturningVoid", instance.getName());
         Assert.assertEquals("void", instance.getReturnType());
         Assert.assertThat(instance.getParameterTypes(), CoreMatchers.hasItems("int[]"));
-        Assert.assertFalse(instance.isParameterTypesSame(instance.getParameterTypes()));
     }
 
     @Test
@@ -20,7 +19,6 @@ public class MethodModelTest extends MethodsUser {
         Assert.assertEquals("testMethodReturningIntArray", instance.getName());
         Assert.assertEquals("int[]", instance.getReturnType());
         Assert.assertThat(instance.getParameterTypes(), CoreMatchers.hasItems("java.lang.String"));
-        Assert.assertFalse(instance.isParameterTypesSame(instance.getParameterTypes()));
     }
 
     @Test
@@ -61,5 +59,12 @@ public class MethodModelTest extends MethodsUser {
         MethodModel instance = new MethodModel(methodTwoParams);
         instance.addParameterType("int");
         Assert.assertEquals("java.lang.String p1, int[] p2, int p3", instance.getFormalParametersInterface());
+    }
+
+    @Test
+    public void testWhenMethodModelCopiedThenParameterReferencesNotShared() {
+        MethodModel original = new MethodModel(methodTwoParams);
+        MethodModel copy = new MethodModel(original);
+        Assert.assertThat(copy.getParameterTypes(), CoreMatchers.not(CoreMatchers.sameInstance(original.getParameterTypes())));
     }
 }

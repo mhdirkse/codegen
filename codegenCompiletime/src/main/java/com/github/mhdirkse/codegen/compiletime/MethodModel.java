@@ -58,11 +58,11 @@ public class MethodModel {
     }
 
     public List<String> getParameterTypes() {
-        return copyParameterTypes(parameterTypes);
+        return parameterTypes;
     }
 
     public void setParameterTypes(List<String> parameterTypes) {
-        this.parameterTypes = copyParameterTypes(parameterTypes);
+        this.parameterTypes = parameterTypes;
     }
 
     public String getFormalParametersInterface() {
@@ -104,10 +104,6 @@ public class MethodModel {
 
     public void addParameterType(final String parameterType) {
         parameterTypes.add(parameterType);
-    }
-
-    boolean isParameterTypesSame(final List<String> other) {
-        return parameterTypes == other;
     }
 
     boolean sharesParameterTypesRef(final MethodModel other) {

@@ -1,7 +1,5 @@
 package com.github.mhdirkse.codegen.compiletime;
 
-import java.util.ArrayList;
-
 import org.apache.velocity.VelocityContext;
 
 public final class VelocityContexts {
@@ -34,9 +32,8 @@ public final class VelocityContexts {
             final String chainClassName,
             final String chainHandlerClassName) {
         ChainClassModels result = new ChainClassModels();
-        ClassModel chainModel = new ClassModel();
+        ClassModel chainModel = new ClassModel(source);
         chainModel.setFullName(chainClassName);
-        chainModel.setMethods(new ArrayList<>(source.getMethods()));
         chainModel.setReturnTypeForAllMethods("void");
         ClassModel chainHandlerModel = getChainHandlerClassModel(source, chainHandlerClassName);
         result.chainModel = chainModel;
@@ -50,9 +47,8 @@ public final class VelocityContexts {
     }
 
     private static ClassModel getChainHandlerClassModel(final ClassModel source, final String chainHandlerClassName) {
-        ClassModel chainHandlerModel = new ClassModel();
+        ClassModel chainHandlerModel = new ClassModel(source);
         chainHandlerModel.setFullName(chainHandlerClassName);
-        chainHandlerModel.setMethods(new ArrayList<>(source.getMethods()));
         chainHandlerModel.setReturnTypeForAllMethods("boolean");
         chainHandlerModel.addParameterTypeToAllMethods(
                 makeType("com.github.mhdirkse.codegen.runtime.HandlerStackContext", chainHandlerModel.getFullName()));
@@ -65,9 +61,8 @@ public final class VelocityContexts {
             final String chainAbstractHandlerClassName,
             final VelocityContext velocityContext) {
         ClassModel chainHandlerModel = getChainHandlerClassModel(source, chainHandlerClassName);
-        ClassModel chainAbstractHandlerModel = new ClassModel();
+        ClassModel chainAbstractHandlerModel = new ClassModel(chainHandlerModel);
         chainAbstractHandlerModel.setFullName(chainAbstractHandlerClassName);
-        chainAbstractHandlerModel.setMethods(new ArrayList<>(chainHandlerModel.getMethods()));
         velocityContext.put("source", chainHandlerModel);
         velocityContext.put("target", chainAbstractHandlerModel);
     }

@@ -50,11 +50,11 @@ public class ClassModel {
     }
 
     public List<MethodModel> getMethods() {
-        return copyMethods(methods);
+        return methods;
     }
 
     public void setMethods(List<MethodModel> methods) {
-        this.methods = copyMethods(methods);
+        this.methods = methods;
     }
 
     public void setMethods(Method[] reflectionMethods) {
