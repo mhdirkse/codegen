@@ -33,7 +33,6 @@ import org.reflections.ReflectionUtils;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
-import com.github.mhdirkse.codegen.compiletime.CodegenProgram;
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.MethodModel;
 import com.github.mhdirkse.codegen.compiletime.Output;
@@ -76,7 +75,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
-        CodegenProgram instantiatedProgram = instantiate(program, CodegenProgram.class);
+        Runnable instantiatedProgram = instantiate(program, Runnable.class);
         ClassRealm realm = getClassRealm();
         populateProgramInputs(instantiatedProgram, realm);
         populateOutputFields(instantiatedProgram);
@@ -86,7 +85,8 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     private <T> T instantiate(final String className, final Class<T> type) throws MojoExecutionException {
         try{
-            return type.cast(type.getClassLoader().loadClass(className).newInstance());
+            ClassLoader mavenPluginClassLoader = this.getClass().getClassLoader();
+            return type.cast(mavenPluginClassLoader.loadClass(className).newInstance());
         } catch(InstantiationException
               | IllegalAccessException
               | ClassNotFoundException e){
@@ -128,7 +128,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     }
 
     private void populateProgramInputs(
-            final CodegenProgram program,
+            final Runnable program,
             final ClassRealm realm) 
                     throws MojoExecutionException {
         try {
@@ -142,7 +142,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     }
 
     private void populateProgramInputsUnchecked(
-            final CodegenProgram program,
+            final Runnable program,
             final ClassRealm realm) 
                     throws IllegalAccessException, MojoExecutionException {
         for (Field inputField : getInputFields(program, this)) {
@@ -152,7 +152,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    static Set<Field> getInputFields(final CodegenProgram program, final Logger logger)
+    static Set<Field> getInputFields(final Runnable program, final Logger logger)
             throws MojoExecutionException {
         InputFieldsAnalyzer a = new InputFieldsAnalyzer(program, logger);
         a.run();
@@ -160,7 +160,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     }
 
     private static class InputFieldsAnalyzer {
-        private final CodegenProgram program;
+        private final Runnable program;
         private final Logger logger;
 
         Set<Field> inputFields;
@@ -169,7 +169,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         Set<Field> inputFieldsAny;
         
         InputFieldsAnalyzer(
-                final CodegenProgram program,
+                final Runnable program,
                 final Logger logger) {
             this.program = program;
             this.logger = logger;
@@ -278,7 +278,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         return result;
     }
 
-    private void populateOutputFields(final CodegenProgram program)
+    private void populateOutputFields(final Runnable program)
             throws MojoExecutionException {
         try {
             populateOutputFieldsUnchecked(program);
@@ -290,14 +290,14 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    private void populateOutputFieldsUnchecked(final CodegenProgram program) 
+    private void populateOutputFieldsUnchecked(final Runnable program) 
             throws MojoExecutionException, IllegalAccessException {
         for(Field outputField : getOutputFields(program, this)) {
             outputField.set(program, new VelocityContext());
         }
     }
 
-    static Set<Field> getOutputFields(final CodegenProgram program, Logger logger) 
+    static Set<Field> getOutputFields(final Runnable program, Logger logger) 
             throws MojoExecutionException {
         OutputFieldsAnalyzer a = new OutputFieldsAnalyzer(program, logger);
         a.run();
@@ -305,7 +305,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     }
 
     private static class OutputFieldsAnalyzer {
-        final CodegenProgram program;
+        final Runnable program;
         final Logger logger;
         Set<Field> outputFields;
         Set<Field> outputFieldsAnyModifier;
@@ -313,7 +313,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         Set<Field> outputFieldsAny;
 
         OutputFieldsAnalyzer(
-                final CodegenProgram program,
+                final Runnable program,
                 final Logger logger) {
             this.program = program;
             this.logger = logger;
@@ -403,7 +403,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         return result;
     }
 
-    private void createOutputFiles(final CodegenProgram program) throws MojoExecutionException {
+    private void createOutputFiles(final Runnable program) throws MojoExecutionException {
         try {
             createOutputFilesUnchecked(program);
         } catch (IllegalAccessException e) {
@@ -413,7 +413,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    private void createOutputFilesUnchecked(final CodegenProgram program)
+    private void createOutputFilesUnchecked(final Runnable program)
             throws MojoExecutionException, IllegalAccessException {
         for (Field outputField : getOutputFields(program, this)) {
             Output annotation = outputField.getAnnotation(Output.class);

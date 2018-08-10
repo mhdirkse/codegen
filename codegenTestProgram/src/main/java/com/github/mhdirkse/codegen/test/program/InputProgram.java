@@ -6,10 +6,9 @@ import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.Output;
-import com.github.mhdirkse.codegen.compiletime.CodegenProgram;
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
 
-public class InputProgram implements CodegenProgram {
+public class InputProgram implements Runnable {
     private static final String OUTPUT_PACKAGE = "com.github.mhdirkse.codegen.test.output.";
     private static final String MY_INTERFACE_DELEGATOR = "MyInterfaceDelegator";
     private static final String MY_INTERFACE_DELEGATOR_FULL = OUTPUT_PACKAGE + MY_INTERFACE_DELEGATOR;

@@ -13,7 +13,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
-import com.github.mhdirkse.codegen.compiletime.CodegenProgram;
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.Output;
 
@@ -96,7 +95,7 @@ public class CodegenMojoTest implements Logger {
         Assert.assertThat(errors.get(0), CoreMatchers.containsString("xyz"));
     }
 
-    class TestProgramHappy implements CodegenProgram {
+    class TestProgramHappy implements Runnable {
         @Input("MyClass")
         public ClassModel i;
 
@@ -108,7 +107,7 @@ public class CodegenMojoTest implements Logger {
         }
     }
 
-    class TestProgramOutputIsNotPublic implements CodegenProgram {
+    class TestProgramOutputIsNotPublic implements Runnable {
         @Output("templateForX")
         VelocityContext xyz;
 
@@ -117,7 +116,7 @@ public class CodegenMojoTest implements Logger {
         }
     }
 
-    class TestProgramOutputNotVelocityContext implements CodegenProgram {
+    class TestProgramOutputNotVelocityContext implements Runnable {
         @Output("templateForX")
         public String xyz;
 
@@ -126,7 +125,7 @@ public class CodegenMojoTest implements Logger {
         }
     }
 
-    class TestProgramOutputAllWrong implements CodegenProgram {
+    class TestProgramOutputAllWrong implements Runnable {
         @Output("templateForX")
         String xyz;
 
@@ -233,7 +232,7 @@ public class CodegenMojoTest implements Logger {
         Assert.assertThat(errors.get(0), CoreMatchers.containsString("not ClassModel and not public"));
     }
 
-    private static class TestProgramInputNotPublic implements CodegenProgram {
+    private static class TestProgramInputNotPublic implements Runnable {
         @Override
         public void run() {
         }
@@ -242,7 +241,7 @@ public class CodegenMojoTest implements Logger {
         ClassModel myInput;
     }
 
-    private static class TestProgramInputNotClassModel implements CodegenProgram {
+    private static class TestProgramInputNotClassModel implements Runnable {
         @Override
         public void run() {
         }
@@ -251,7 +250,7 @@ public class CodegenMojoTest implements Logger {
         public String myInput;
     }
 
-    private static class TestProgramInputMultipleErrors implements CodegenProgram {
+    private static class TestProgramInputMultipleErrors implements Runnable {
         @Override
         public void run() {
         }
