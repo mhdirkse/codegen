@@ -6,6 +6,7 @@ import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.compiletime.VelocityContexts;
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
 
 public class InputProgram implements Runnable {
@@ -31,29 +32,20 @@ public class InputProgram implements Runnable {
 
     @Override
     public void run() {
-        ClassModel chainModel = new ClassModel();
-        chainModel.setFullName(MY_INTERFACE_DELEGATOR_FULL);
-        chainModel.setMethods(new ArrayList<>(source.getMethods()));
-        chainModel.setReturnTypeForAllMethods("void");
-        ClassModel chainHandlerModel = new ClassModel();
-        chainHandlerModel.setFullName(MY_INTERFACE_HANDLER_FULL);
-        chainHandlerModel.setMethods(new ArrayList<>(source.getMethods()));
-        chainHandlerModel.setReturnTypeForAllMethods("boolean");
-        chainHandlerModel.addParameterTypeToAllMethods(
-                makeType("com.github.mhdirkse.codegen.runtime.HandlerStackContext", chainHandlerModel.getFullName()));
-        ClassModel chainAbstractHandlerModel = new ClassModel();
-        chainAbstractHandlerModel.setFullName(MY_INTERFACE_ABSTRACT_HANDLER_FULL);
-        chainAbstractHandlerModel.setMethods(new ArrayList<>(chainHandlerModel.getMethods()));
-        chain.put("source", source);
-        chain.put("target", chainModel);
-        chain.put("handler", chainHandlerModel);
-        chainHandler.put("source", source);
-        chainHandler.put("target", chainHandlerModel);
-        chainAbstractHandler.put("source", chainHandlerModel);
-        chainAbstractHandler.put("target", chainAbstractHandlerModel);
-    }
-
-    private String makeType(final String base, final String typeParameter) {
-        return base + "<" + typeParameter + ">";
+        VelocityContexts.populateChainContext(
+                source,
+                MY_INTERFACE_DELEGATOR_FULL,
+                MY_INTERFACE_HANDLER_FULL,
+                chain);
+        VelocityContexts.populateChainHandlerContext(
+                source,
+                MY_INTERFACE_DELEGATOR_FULL,
+                MY_INTERFACE_HANDLER_FULL,
+                chainHandler);
+        VelocityContexts.populateChainAbstractHandlerContext(
+                source,
+                MY_INTERFACE_HANDLER_FULL,
+                MY_INTERFACE_ABSTRACT_HANDLER_FULL,
+                chainAbstractHandler);
     }
 }
