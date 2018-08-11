@@ -5,3 +5,4 @@ for f in ${POM_FILES}; do
 	awk -f parentVersion.awk ${f} | grep "<version>" > tmp
 	echo "$f: $(cat tmp)"
 done
+rm tmp
