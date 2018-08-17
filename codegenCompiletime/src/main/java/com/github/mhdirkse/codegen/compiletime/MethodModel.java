@@ -13,6 +13,7 @@ public class MethodModel {
     private boolean overridden = false;
 
     public MethodModel() {
+        parameterTypes = new ArrayList<>();
     }
 
     public MethodModel(final MethodModel other) {

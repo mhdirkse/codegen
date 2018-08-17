@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -30,12 +31,15 @@ import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
 import org.reflections.ReflectionUtils;
+import org.reflections.Reflections;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.MethodModel;
 import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.compiletime.TypeHierarchy;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -78,6 +82,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         Runnable instantiatedProgram = instantiate(program, Runnable.class);
         ClassRealm realm = getClassRealm();
         populateProgramInputs(instantiatedProgram, realm);
+        populateTypeHierarchies(instantiatedProgram, realm);
         populateOutputFields(instantiatedProgram);
         instantiatedProgram.run();
         createOutputFiles(instantiatedProgram);
@@ -148,27 +153,38 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         for (Field inputField : getInputFields(program, this)) {
             Input annotation = inputField.getAnnotation(Input.class);
             String source = annotation.value();
-            inputField.set(program, getClassModel(source, realm));
+            inputField.set(
+                    program,
+                    getClassModel(
+                            source,
+                            ClassLoaderAdapter.forRealm(Object.class, realm),
+                            this.program,
+                            this));
         }
     }
 
     static Set<Field> getInputFields(final Runnable program, final Logger logger)
             throws MojoExecutionException {
-        InputFieldsAnalyzer a = new InputFieldsAnalyzer(program, logger);
+        FieldsAnalyzer a = new FieldsAnalyzer(program, logger);
+        a.targetAnnotation = Input.class;
+        a.targetType = ClassModel.class;
         a.run();
-        return a.inputFields;
+        return a.fields;
     }
 
-    private static class InputFieldsAnalyzer {
+    private static class FieldsAnalyzer {
         private final Runnable program;
         private final Logger logger;
 
-        Set<Field> inputFields;
-        Set<Field> inputFieldsAnyModifier;
-        Set<Field> inputFieldsAnyType;
-        Set<Field> inputFieldsAny;
+        Class<? extends Annotation> targetAnnotation;
+        Class<?> targetType;
+
+        Set<Field> fields;
+        Set<Field> fieldsAnyModifier;
+        Set<Field> fieldsAnyType;
+        Set<Field> fieldsAny;
         
-        InputFieldsAnalyzer(
+        FieldsAnalyzer(
                 final Runnable program,
                 final Logger logger) {
             this.program = program;
@@ -176,74 +192,79 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
 
         void run() throws MojoExecutionException {
-            getInputFields();
-            getInputFieldsAnyModifier();
-            getInputFieldsAnyType();
-            getInputFieldsAllWrong();
-            checkAllInputFieldsPublic();
-            checkAllInputFieldsClassModel();
-            checkNoInputFieldsAllWrong();
+            getFields();
+            getFieldsAnyModifier();
+            getFieldsAnyType();
+            getFieldsAllWrong();
+            checkAllFieldsPublic();
+            checkAllFieldsCorrectType();
+            checkNoFieldsAllWrong();
         }
 
         @SuppressWarnings("unchecked")
-        private void getInputFields() {
-            inputFields = ReflectionUtils.getAllFields(
+        private void getFields() {
+            fields = ReflectionUtils.getAllFields(
                     program.getClass(),
-                    ReflectionUtils.withTypeAssignableTo(ClassModel.class),
-                    ReflectionUtils.withAnnotation(Input.class),
+                    ReflectionUtils.withTypeAssignableTo(targetType),
+                    ReflectionUtils.withAnnotation(targetAnnotation),
                     ReflectionUtils.withModifier(Modifier.PUBLIC));
         }
 
         @SuppressWarnings("unchecked")
-        private void getInputFieldsAnyModifier() {
-            inputFieldsAnyModifier = ReflectionUtils.getAllFields(
+        private void getFieldsAnyModifier() {
+            fieldsAnyModifier = ReflectionUtils.getAllFields(
                     program.getClass(),
-                    ReflectionUtils.withTypeAssignableTo(ClassModel.class),
-                    ReflectionUtils.withAnnotation(Input.class));
+                    ReflectionUtils.withTypeAssignableTo(targetType),
+                    ReflectionUtils.withAnnotation(targetAnnotation));
         }
 
         @SuppressWarnings("unchecked")
-        private void getInputFieldsAnyType() {
-            inputFieldsAnyType = ReflectionUtils.getAllFields(
+        private void getFieldsAnyType() {
+            fieldsAnyType = ReflectionUtils.getAllFields(
                     program.getClass(),
-                    ReflectionUtils.withAnnotation(Input.class),
+                    ReflectionUtils.withAnnotation(targetAnnotation),
                     ReflectionUtils.withModifier(Modifier.PUBLIC));
         }
 
         @SuppressWarnings("unchecked")
-        private void getInputFieldsAllWrong() {
-            inputFieldsAny = ReflectionUtils.getAllFields(
+        private void getFieldsAllWrong() {
+            fieldsAny = ReflectionUtils.getAllFields(
                     program.getClass(),
-                    ReflectionUtils.withAnnotation(Input.class));
+                    ReflectionUtils.withAnnotation(targetAnnotation));
         }
 
-        private void checkAllInputFieldsPublic() throws MojoExecutionException {
-            Set<Field> nonPublicInputFields = new HashSet<>(inputFieldsAnyModifier);
-            nonPublicInputFields.removeAll(inputFields);
+        private void checkAllFieldsPublic() throws MojoExecutionException {
+            Set<Field> nonPublicInputFields = new HashSet<>(fieldsAnyModifier);
+            nonPublicInputFields.removeAll(fields);
             if(!nonPublicInputFields.isEmpty()) {
-                String msg = String.format("Some input fields are not public: %s", 
+                String msg = String.format("Some %s fields are not public: %s",
+                        targetAnnotation.getSimpleName(),
                         StringUtils.join(getFieldNames(nonPublicInputFields), ", "));
                 logger.error(msg);
                 throw new MojoExecutionException(msg);
             }
         }
 
-        private void checkAllInputFieldsClassModel() throws MojoExecutionException {
-            Set<Field> nonClassModelInputFields = new HashSet<>(inputFieldsAnyType);
-            nonClassModelInputFields.removeAll(inputFields);
+        private void checkAllFieldsCorrectType() throws MojoExecutionException {
+            Set<Field> nonClassModelInputFields = new HashSet<>(fieldsAnyType);
+            nonClassModelInputFields.removeAll(fields);
             if(!nonClassModelInputFields.isEmpty()) {
-                String msg = String.format("Some input fields are not ClassModel: %s", 
+                String msg = String.format("Some %s fields are not %s: %s",
+                        targetAnnotation.getSimpleName(),
+                        targetType.getSimpleName(),
                         StringUtils.join(getFieldNames(nonClassModelInputFields), ", "));
                 logger.error(msg);
                 throw new MojoExecutionException(msg);
             }
         }
 
-        private void checkNoInputFieldsAllWrong() throws MojoExecutionException {
-            Set<Field> allWrongInputFields = new HashSet<>(inputFieldsAny);
-            allWrongInputFields.removeAll(inputFields);
+        private void checkNoFieldsAllWrong() throws MojoExecutionException {
+            Set<Field> allWrongInputFields = new HashSet<>(fieldsAny);
+            allWrongInputFields.removeAll(fields);
             if(!allWrongInputFields.isEmpty()) {
-                String msg = String.format("Some input fields are not ClassModel and not public: %s", 
+                String msg = String.format("Some %s fields are not %s and not public: %s",
+                        targetAnnotation.getSimpleName(),
+                        targetType.getSimpleName(),
                         StringUtils.join(getFieldNames(allWrongInputFields), ", "));
                 logger.error(msg);
                 throw new MojoExecutionException(msg);
@@ -251,29 +272,144 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    private ClassModel getClassModel(final String source, final ClassRealm realm) 
-            throws MojoExecutionException {
+    private static ClassModel getClassModel(
+            final String source,
+            final ClassLoaderAdapter cla,
+            final String program,
+            final Logger logger) 
+                    throws MojoExecutionException {
         ClassModel result = new ClassModel();
         result.setFullName(source);
+        result.setMethods(getMethods(getClass(source, cla, program, logger)));
+        return result;
+    }
+
+    private static Class<?> getClass(
+            final String source,
+            final ClassLoaderAdapter cla,
+            final String program,
+            final Logger logger)
+                    throws MojoExecutionException {
         try {
-            result.setMethods(getMethods(source, realm));
+            return cla.loadClass(source);
         }
         catch(ClassNotFoundException e) {
             String msg = String.format("Program %s references class that is not available: %s",
                     program, source);
-            getLog().error(msg);
+            logger.error(msg);
             throw new MojoExecutionException(msg, e);
         }
-        return result;
     }
 
-    private List<MethodModel> getMethods(final String fullClassName, final ClassRealm realm)
-            throws ClassNotFoundException {
-        Class<?> clazz = realm.loadClass(fullClassName);
+    private static List<MethodModel> getMethods(final Class<?> clazz)
+    {
         Method[] reflectionMethods = clazz.getMethods();
         List<MethodModel> result = new ArrayList<>();
         for (Method reflectionMethod : reflectionMethods) {
             result.add(new MethodModel(reflectionMethod));
+        }
+        return result;
+    }
+
+    static abstract class ClassLoaderAdapter {
+        abstract Class<?> loadClass(final String name) throws ClassNotFoundException ;
+        abstract ClassLoader getClassLoader();
+
+        static ClassLoaderAdapter forRealm(
+                final Class<?> classLoaderSeed, final ClassRealm realm) {
+            return new ClassLoaderAdapterRealm(classLoaderSeed, realm);
+        }
+
+        static ClassLoaderAdapter forCl(final ClassLoader classLoader) {
+            return new ClassLoaderAdapterCl(classLoader);
+        }
+    }
+
+    static private class ClassLoaderAdapterRealm extends ClassLoaderAdapter {
+        private final Class<?> classLoaderSeed;
+        private final ClassRealm realm;
+
+        ClassLoaderAdapterRealm(
+                final Class<?> classLoaderSeed,
+                final ClassRealm realm) {
+            this.classLoaderSeed = classLoaderSeed;
+            this.realm = realm;
+        }
+
+        @Override
+        Class<?> loadClass(final String name) throws ClassNotFoundException {
+            return realm.loadClass(name);
+        }
+
+        @Override
+        ClassLoader getClassLoader() {
+            return realm.getImportClassLoader(classLoaderSeed.getName());
+        }
+    }
+
+    static private class ClassLoaderAdapterCl extends ClassLoaderAdapter {
+        private final ClassLoader cl;
+
+        ClassLoaderAdapterCl(final ClassLoader cl) {
+            this.cl = cl;
+        }
+
+        @Override
+        Class<?> loadClass(final String name) throws ClassNotFoundException {
+            return cl.loadClass(name);
+        }
+
+        @Override
+        ClassLoader getClassLoader() {
+            return cl;
+        }
+    }
+
+    private void populateTypeHierarchies(final Runnable program, ClassRealm realm)
+            throws MojoExecutionException {
+        try {
+            populateTypeHierarchiesUnchecked(program, realm);
+        }
+        catch(IllegalAccessException e) {
+            throw new MojoExecutionException("Unknown error populating type hierarchies", e);
+        }
+    }
+
+    private void populateTypeHierarchiesUnchecked(final Runnable program, final ClassRealm realm)
+            throws MojoExecutionException, IllegalAccessException {
+        for(Field field : getTypeHierarchyFields(program)) {
+            TypeHierarchy annotation = field.getAnnotation(TypeHierarchy.class);
+            String root = annotation.value();
+            Class<?> rootClass = getClass(
+                    root,
+                    ClassLoaderAdapter.forRealm(Object.class, realm),
+                    this.program,
+                    this);
+            ClassLoaderAdapter cla = ClassLoaderAdapter.forRealm(rootClass, realm);
+            field.set(program, getHierarchy(rootClass, cla, this.program, this));
+        }
+    }
+
+    private Set<Field> getTypeHierarchyFields(final Runnable program) 
+            throws MojoExecutionException {
+        FieldsAnalyzer a = new FieldsAnalyzer(program, this);
+        a.targetAnnotation = TypeHierarchy.class;
+        a.targetType = ClassModelList.class;
+        a.run();
+        return a.fields;
+    }
+
+    static <R> ClassModelList getHierarchy(
+            final Class<R> root,
+            final ClassLoaderAdapter cla,
+            final String program,
+            final Logger logger) throws MojoExecutionException {
+        Reflections r = new Reflections(root.getPackage().getName());
+        Set<Class<? extends R>> subClasses = r.getSubTypesOf(root);
+        subClasses.add(root);
+        ClassModelList result = new ClassModelList();
+        for (Class<? extends R> subClass : subClasses) {
+            result.add(getClassModel(subClass.getName(), cla, program, logger));
         }
         return result;
     }
@@ -299,100 +435,11 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     static Set<Field> getOutputFields(final Runnable program, Logger logger) 
             throws MojoExecutionException {
-        OutputFieldsAnalyzer a = new OutputFieldsAnalyzer(program, logger);
+        FieldsAnalyzer a = new FieldsAnalyzer(program, logger);
+        a.targetAnnotation = Output.class;
+        a.targetType = VelocityContext.class;
         a.run();
-        return a.outputFields;
-    }
-
-    private static class OutputFieldsAnalyzer {
-        final Runnable program;
-        final Logger logger;
-        Set<Field> outputFields;
-        Set<Field> outputFieldsAnyModifier;
-        Set<Field> outputFieldsAnyType;
-        Set<Field> outputFieldsAny;
-
-        OutputFieldsAnalyzer(
-                final Runnable program,
-                final Logger logger) {
-            this.program = program;
-            this.logger = logger;
-        }
-
-        void run() throws MojoExecutionException {
-            getOutputFields();
-            getOutputFieldsAnyModifier();
-            getOutputFieldsAnyType();
-            getOutputFieldsAny();
-            checkAllPublic();
-            checkAllVelocityContext();
-            checkNoneAllWrong();
-        }
-
-        @SuppressWarnings("unchecked")
-        private void getOutputFields() {
-            outputFields = ReflectionUtils.getAllFields(
-                    program.getClass(),
-                    ReflectionUtils.withTypeAssignableTo(VelocityContext.class),
-                    ReflectionUtils.withAnnotation(Output.class),
-                    ReflectionUtils.withModifier(Modifier.PUBLIC));
-        }
-
-        @SuppressWarnings("unchecked")
-        private void getOutputFieldsAnyModifier() {
-            outputFieldsAnyModifier = ReflectionUtils.getAllFields(
-                    program.getClass(),
-                    ReflectionUtils.withTypeAssignableTo(VelocityContext.class),
-                    ReflectionUtils.withAnnotation(Output.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        private void getOutputFieldsAnyType() {
-            outputFieldsAnyType = ReflectionUtils.getAllFields(
-                    program.getClass(),
-                    ReflectionUtils.withAnnotation(Output.class),
-                    ReflectionUtils.withModifier(Modifier.PUBLIC));
-        }
-
-        @SuppressWarnings("unchecked")
-        private void getOutputFieldsAny() {
-            outputFieldsAny = ReflectionUtils.getAllFields(
-                    program.getClass(),
-                    ReflectionUtils.withAnnotation(Output.class));
-        }
-
-        private void checkAllPublic() throws MojoExecutionException {
-            Set<Field> nonPublicFields = new HashSet<>(outputFieldsAnyModifier);
-            nonPublicFields.removeAll(outputFields);
-            if (!nonPublicFields.isEmpty()) {
-                String msg = String.format("Output fields %s are not public",
-                        StringUtils.join(getFieldNames(nonPublicFields), ", "));
-                logger.error(msg);
-                throw new MojoExecutionException(msg);
-            }
-        }
-
-        private void checkAllVelocityContext() throws MojoExecutionException {
-            Set<Field> nonVelocityContextFields = new HashSet<>(outputFieldsAnyType);
-            nonVelocityContextFields.removeAll(outputFields);
-            if (!nonVelocityContextFields.isEmpty()) {
-                String msg = String.format("Output fields %s are not VelocityContext",
-                        StringUtils.join(getFieldNames(nonVelocityContextFields), ", "));
-                logger.error(msg);
-                throw new MojoExecutionException(msg);
-            }
-        }
-
-        private void checkNoneAllWrong() throws MojoExecutionException {
-            Set<Field> allWrongFields = new HashSet<>(outputFieldsAny);
-            allWrongFields.removeAll(outputFields);
-            if (!allWrongFields.isEmpty()) {
-                String msg = String.format("Output fields %s are not VelocityContext and not public",
-                        StringUtils.join(getFieldNames(allWrongFields), ", "));
-                logger.error(msg);
-                throw new MojoExecutionException(msg);
-            }
-        }        
+        return a.fields;
     }
 
     private static List<String> getFieldNames(Collection<Field> fields) {

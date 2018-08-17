@@ -3,8 +3,10 @@ package com.github.mhdirkse.codegen.plugin;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.velocity.VelocityContext;
@@ -13,6 +15,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.Output;
 
@@ -257,5 +260,31 @@ public class CodegenMojoTest implements Logger {
 
         @Input("MyClass")
         String myInput;
+    }
+
+    @Test
+    public void testGetHierarchyGivesChildrenAndParent() throws MojoExecutionException {
+        ClassModelList actual = CodegenMojo.getHierarchy(
+                Parent.class,
+                CodegenMojo.ClassLoaderAdapter.forCl(Parent.class.getClassLoader()),
+                "dummyProgram",
+                this);
+        Assert.assertEquals(2, actual.size());
+        Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems(
+                "Parent", "Child"));
+    }
+
+    private List<String> getSimpleNames(Collection<ClassModel> classModels) {
+        return classModels.stream()
+                .map(ClassModel::getSimpleName)
+                .map(s -> s.split("\\$")[1])
+                .collect(Collectors.toList());
+    }
+
+    private class Parent {
+    }
+
+    @SuppressWarnings("unused")
+    private class Child extends Parent {
     }
 }

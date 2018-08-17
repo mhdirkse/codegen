@@ -22,10 +22,9 @@ public class MethodModelTest extends MethodsUser {
     }
 
     @Test
-    public void testParameterTypesInitiallyNull() {
+    public void testParameterTypesInitiallyEmpty() {
         MethodModel instance = new MethodModel();
-        Assert.assertNull(instance.getParameterTypes());
-        instance.setParameterTypes(null);
+        Assert.assertEquals(0, instance.getParameterTypes().size());
     }
 
     @Test
@@ -59,6 +58,13 @@ public class MethodModelTest extends MethodsUser {
         MethodModel instance = new MethodModel(methodTwoParams);
         instance.addParameterType("int");
         Assert.assertEquals("java.lang.String p1, int[] p2, int p3", instance.getFormalParametersInterface());
+    }
+
+    @Test
+    public void testWhenFirstParameterAddedThenOneParameterPresent() {
+        MethodModel instance = new MethodModel();
+        instance.addParameterType("int");
+        Assert.assertEquals("int p1", instance.getFormalParametersInterface());        
     }
 
     @Test
