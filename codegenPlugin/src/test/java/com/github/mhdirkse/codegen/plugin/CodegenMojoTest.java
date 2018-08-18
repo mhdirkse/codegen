@@ -282,6 +282,11 @@ public class CodegenMojoTest implements Logger {
         String myInput;
     }
 
+    @Test(expected = MojoExecutionException.class)
+    public void testWhenClassNotFoundThenMojoExecutionException() throws MojoExecutionException {
+        testable.getClass("InvalidClass", ClassLoaderAdapter.forCl(this.getClass().getClassLoader()));
+    }
+
     @Test
     public void testGetHierarchyGivesChildrenAndParent() throws MojoExecutionException {
         ClassModelList actual = testable.getHierarchy(
