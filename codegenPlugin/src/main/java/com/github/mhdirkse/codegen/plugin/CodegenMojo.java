@@ -4,13 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -25,15 +24,10 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
-import org.reflections.Reflections;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
-import com.github.mhdirkse.codegen.compiletime.ClassModelList;
-import com.github.mhdirkse.codegen.compiletime.Input;
-import com.github.mhdirkse.codegen.compiletime.MethodModel;
 import com.github.mhdirkse.codegen.compiletime.Output;
-import com.github.mhdirkse.codegen.compiletime.TypeHierarchy;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -71,22 +65,47 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         getLog().error(msg);
     }
 
+    @Override
+    public void info(final String msg, final Throwable e) {
+        getLog().info(msg, e);
+    }
+
+    @Override
+    public void error(final String msg, final Throwable e) {
+        getLog().error(msg, e);
+    }
+
     Testable testable = new TestableImpl();
 
     @Override
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         Runnable instantiatedProgram = instantiate(program, Runnable.class);
-        ClassRealm realm = getClassRealm();
-        MojoExecutionExceptionAdapter.list().add("Populate program inputs", () -> {
-            this.populateProgramInputsUnchecked(instantiatedProgram, realm);
-        }).add("Populate type hierarchies", () -> {
-            this.populateTypeHierarchiesUnchecked(instantiatedProgram, realm);
-        }).add("Populate output fields", () -> {
-            this.populateOutputFieldsUnchecked(instantiatedProgram);
-        }).run();
-        instantiatedProgram.run();
-        createOutputFiles(instantiatedProgram);
+        ClassLoaderAdapter cla = ClassLoaderAdapter.forRealm(Object.class, getClassRealm());
+        List<Optional<FieldManipulation>> rawManipulations = new ArrayList<>();
+        rawManipulations.addAll(new FieldIterator.InputPopulator(instantiatedProgram, this, cla).run());
+        List<Optional<FieldManipulation>> outputManipulations = new FieldIterator.OutputPopulator(instantiatedProgram, this).run();
+        rawManipulations.addAll(outputManipulations);
+        rawManipulations.addAll(new FieldIterator.HierarchyPopulator(instantiatedProgram, this, cla).run());
+        List<FieldManipulation> manipulations = rawManipulations.stream()
+                .filter(Optional::isPresent)
+                .map((om) -> om.get())
+                .collect(Collectors.toList());
+        boolean manipulationsOk = (manipulations.size() == rawManipulations.size());
+        if (!manipulationsOk) {
+            String msg = "Some field manipulations could not be created. Please see Maven console output.";
+            error(msg);
+            throw new MojoExecutionException(msg);
+        }
+        boolean populated = (runAllManipulations(manipulations));
+        if(!populated) {
+            String msg = "Could not populate the provided program. Please see Maven console output.";
+            error(msg);
+            throw new MojoExecutionException(msg);
+        } else {
+            instantiatedProgram.run();
+            createOutputFiles(outputManipulations);
+        }
     }
 
     private <T> T instantiate(final String className, final Class<T> type) throws MojoExecutionException {
@@ -131,54 +150,31 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    private void populateProgramInputsUnchecked(final Runnable program, final ClassRealm realm)
-            throws IllegalAccessException, MojoExecutionException {
-        for (Field inputField : testable.getInputFields(program)) {
-            Input annotation = inputField.getAnnotation(Input.class);
-            String source = annotation.value();
-            inputField.set(program,
-                    testable.getClassModel(source, ClassLoaderAdapter.forRealm(Object.class, realm)));
+    boolean runAllManipulations(final List<FieldManipulation> manipulations) {
+        return manipulations.stream()
+            .map(FieldManipulation::run)
+            .filter(CodegenMojo::failed)
+            .collect(Collectors.counting()) == 0;
+    }
+
+    static boolean failed(final boolean manipulationResult) {
+        return !manipulationResult;
+    }
+
+    private void createOutputFiles(
+            final List<Optional<FieldManipulation>> outputManipulations) throws MojoExecutionException {
+        for(Optional<FieldManipulation> fm : outputManipulations) {
+            createOutputFilesUnchecked(fm.get());    
         }
     }
 
-    private void populateTypeHierarchiesUnchecked(final Runnable program, final ClassRealm realm)
-            throws MojoExecutionException, IllegalAccessException {
-        for (Field field : testable.getTypeHierarchyFields(program)) {
-            TypeHierarchy annotation = field.getAnnotation(TypeHierarchy.class);
-            String root = annotation.value();
-            Class<?> rootClass = testable.getClass(root, ClassLoaderAdapter.forRealm(Object.class, realm));
-            ClassLoaderAdapter cla = ClassLoaderAdapter.forRealm(rootClass, realm);
-            field.set(program, testable.getHierarchy(rootClass, cla));
-        }
-    }
-
-    private void populateOutputFieldsUnchecked(final Runnable program)
-            throws MojoExecutionException, IllegalAccessException {
-        for (Field outputField : testable.getOutputFields(program)) {
-            outputField.set(program, new VelocityContext());
-        }
-    }
-
-    private void createOutputFiles(final Runnable program) throws MojoExecutionException {
-        try {
-            createOutputFilesUnchecked(program);
-        } catch (IllegalAccessException e) {
-            String msg = "This cannot happen";
-            getLog().error(msg, e);
-            throw new MojoExecutionException(msg, e);
-        }
-    }
-
-    private void createOutputFilesUnchecked(final Runnable program)
-            throws MojoExecutionException, IllegalAccessException {
-        for (Field outputField : testable.getOutputFields(program)) {
-            Output annotation = outputField.getAnnotation(Output.class);
-            String template = annotation.value();
-            VelocityContext velocityContext = (VelocityContext) outputField.get(program);
-            ClassModel outputClassModel = testable.getTarget(velocityContext, outputField.getName());
-            String outputFile = outputClassModel.getFullName();
-            writeOutputFile(velocityContext, template, outputFile);
-        }
+    private void createOutputFilesUnchecked(final FieldManipulation fm) throws MojoExecutionException {
+        Output annotation = fm.f.getAnnotation(Output.class);
+        String template = annotation.value();
+        VelocityContext velocityContext = (VelocityContext) fm.instantiatedObject;
+        ClassModel outputClassModel = testable.getTarget(velocityContext, fm.f.getName());
+        String outputFile = outputClassModel.getFullName();
+        writeOutputFile(velocityContext, template, outputFile);
     }
 
     private void writeOutputFile(VelocityContext velocityContext, String templateFileName, String outputClass)
@@ -228,67 +224,6 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     static abstract class Testable {
         abstract Logger getLogger();
         abstract String getProgram();
-
-        Set<Field> getInputFields(final Runnable program) throws MojoExecutionException {
-            FieldsAnalyzer a = new FieldsAnalyzer(program, getLogger());
-            a.targetAnnotation = Input.class;
-            a.targetType = ClassModel.class;
-            a.run();
-            return a.fields;
-        }
-
-        ClassModel getClassModel(final String source, final ClassLoaderAdapter cla) throws MojoExecutionException {
-            ClassModel result = new ClassModel();
-            result.setFullName(source);
-            result.setMethods(getMethods(getClass(source, cla)));
-            return result;
-        }
-
-        Class<?> getClass(final String source, final ClassLoaderAdapter cla) throws MojoExecutionException {
-            try {
-                return cla.loadClass(source);
-            } catch (ClassNotFoundException e) {
-                String msg = String.format("Program %s references class that is not available: %s", getProgram(), source);
-                getLogger().error(msg);
-                throw new MojoExecutionException(msg, e);
-            }
-        }
-
-        List<MethodModel> getMethods(final Class<?> clazz) {
-            Method[] reflectionMethods = clazz.getMethods();
-            List<MethodModel> result = new ArrayList<>();
-            for (Method reflectionMethod : reflectionMethods) {
-                result.add(new MethodModel(reflectionMethod));
-            }
-            return result;
-        }
-
-        Set<Field> getTypeHierarchyFields(final Runnable program) throws MojoExecutionException {
-            FieldsAnalyzer a = new FieldsAnalyzer(program, getLogger());
-            a.targetAnnotation = TypeHierarchy.class;
-            a.targetType = ClassModelList.class;
-            a.run();
-            return a.fields;
-        }
-
-        <R> ClassModelList getHierarchy(final Class<R> root, final ClassLoaderAdapter cla) throws MojoExecutionException {
-            Reflections r = new Reflections(root.getPackage().getName());
-            Set<Class<? extends R>> subClasses = r.getSubTypesOf(root);
-            subClasses.add(root);
-            ClassModelList result = new ClassModelList();
-            for (Class<? extends R> subClass : subClasses) {
-                result.add(getClassModel(subClass.getName(), cla));
-            }
-            return result;
-        }
-
-        Set<Field> getOutputFields(final Runnable program) throws MojoExecutionException {
-            FieldsAnalyzer a = new FieldsAnalyzer(program, getLogger());
-            a.targetAnnotation = Output.class;
-            a.targetType = VelocityContext.class;
-            a.run();
-            return a.fields;
-        }
 
         ClassModel getTarget(final VelocityContext velocityContext, final String fieldName)
                 throws MojoExecutionException {

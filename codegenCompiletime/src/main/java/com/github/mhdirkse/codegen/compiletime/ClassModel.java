@@ -21,6 +21,21 @@ public class ClassModel {
         this.methods = copyMethods(other.methods);
     }
 
+    public ClassModel(Class<?> clazz) {
+        fullName = clazz.getName();
+        methods = getMethods(clazz);        
+    }
+
+    private static List<MethodModel> getMethods(final Class<?> clazz) {
+        Method[] reflectionMethods = clazz.getMethods();
+        List<MethodModel> result = new ArrayList<>();
+        for (Method reflectionMethod : reflectionMethods) {
+            result.add(new MethodModel(reflectionMethod));
+        }
+        return result;
+    }
+
+
     private static List<MethodModel> copyMethods(final List<MethodModel> source) {
         List<MethodModel> result = null;
         if (source != null) {
