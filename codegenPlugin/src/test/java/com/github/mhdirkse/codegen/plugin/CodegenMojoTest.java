@@ -12,6 +12,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.velocity.VelocityContext;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
@@ -22,6 +23,25 @@ import com.github.mhdirkse.codegen.compiletime.Output;
 public class CodegenMojoTest implements Logger {
     private final List<String> infos = new ArrayList<>();
     private final List<String> errors = new ArrayList<>();
+
+    private class TestableStub extends CodegenMojo.Testable {
+        @Override
+        Logger getLogger() {
+            return CodegenMojoTest.this;
+        }
+
+        @Override
+        String getProgram() {
+            return "dummyProgram";
+        }
+    }
+
+    private CodegenMojo.Testable testable;
+
+    @Before
+    public void setUp() {
+        testable = new TestableStub();
+    }
 
     @Override
     public void info(final String msg) {
@@ -35,19 +55,19 @@ public class CodegenMojoTest implements Logger {
 
     @Test
     public void testPackageToRelativePathLinux() {
-        Assert.assertEquals("base/com/github/mhdirkse/X.java", CodegenMojo.classToPathOfJavaFile(
+        Assert.assertEquals("base/com/github/mhdirkse/X.java", CodegenMojo.Testable.classToPathOfJavaFile(
                 new File("base"), "com.github.mhdirkse.X").toString());
     }
 
     @Test
     public void testPackageToRelativePathLinuxNoPath() {
-        Assert.assertEquals("base/X.java", CodegenMojo.classToPathOfJavaFile(
+        Assert.assertEquals("base/X.java", CodegenMojo.Testable.classToPathOfJavaFile(
                 new File("base"), "X").toString());
     }
 
     @Test
     public void testWhenAllOutputsAreVelocityContextThenOutputsFound() throws MojoExecutionException {
-        Set<Field> fields = CodegenMojo.getOutputFields(new TestProgramHappy(), this);
+        Set<Field> fields = testable.getOutputFields(new TestProgramHappy());
         Assert.assertEquals(1, fields.size());
         for(Field field : fields) {
             String actual = field.getName();
@@ -60,7 +80,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenOutputIsPrivateThenNotFoundAndErrorLogged() {
         boolean gotException = false;
         try {
-            CodegenMojo.getOutputFields(new TestProgramOutputIsNotPublic(), this);
+            testable.getOutputFields(new TestProgramOutputIsNotPublic());
         } catch(MojoExecutionException e) {
             gotException = true;
         }
@@ -74,7 +94,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenOutputFieldNotVelocityContextThenNotFoundAndErrorLogged() {
         boolean gotException = false;
         try {
-            CodegenMojo.getOutputFields(new TestProgramOutputNotVelocityContext(), this);
+            testable.getOutputFields(new TestProgramOutputNotVelocityContext());
         } catch(MojoExecutionException e) {
             gotException = true;
         }
@@ -88,7 +108,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenOutputFieldNotVelocityContextAndNotPublicThenNotFoundAndErrorLogged() {
         boolean gotException = false;
         try {
-            CodegenMojo.getOutputFields(new TestProgramOutputAllWrong(), this);
+            testable.getOutputFields(new TestProgramOutputAllWrong());
         } catch(MojoExecutionException e) {
             gotException = true;
         }
@@ -142,7 +162,7 @@ public class CodegenMojoTest implements Logger {
             throws MojoExecutionException {
         VelocityContext input = new VelocityContext();
         input.put("target", new ClassModel());
-        ClassModel actualTarget = CodegenMojo.getTarget(input, "myField", this);
+        ClassModel actualTarget = testable.getTarget(input, "myField");
         Assert.assertNotNull(actualTarget);
         Assert.assertEquals(0, errors.size());
     }
@@ -152,7 +172,7 @@ public class CodegenMojoTest implements Logger {
         boolean gotException = false;
         VelocityContext input = new VelocityContext();
         try {
-            CodegenMojo.getTarget(input, "myField", this);
+            testable.getTarget(input, "myField");
         }
         catch(MojoExecutionException e) {
             gotException = true;
@@ -169,7 +189,7 @@ public class CodegenMojoTest implements Logger {
         VelocityContext input = new VelocityContext();
         input.put("target", "Not a class model");
         try {
-            CodegenMojo.getTarget(input, "myField", this);
+            testable.getTarget(input, "myField");
         }
         catch(MojoExecutionException e) {
             gotException = true;
@@ -182,7 +202,7 @@ public class CodegenMojoTest implements Logger {
 
     @Test
     public void testWhenProgramHasValidInputThenInputReturned() throws MojoExecutionException {
-        Set<Field> fields = CodegenMojo.getInputFields(new TestProgramHappy(), this);
+        Set<Field> fields = testable.getInputFields(new TestProgramHappy());
         Assert.assertEquals(1, fields.size());
         for (Field field : fields) {
             Assert.assertEquals("i", field.getName());
@@ -194,7 +214,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenInputNotPublicThenError() {
         boolean gotException = false;
         try {
-            CodegenMojo.getInputFields(new TestProgramInputNotPublic(), this);
+            testable.getInputFields(new TestProgramInputNotPublic());
         }
         catch(MojoExecutionException e) {
             gotException = true;
@@ -209,7 +229,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenInputNotClassModelThenError() {
         boolean gotException = false;
         try {
-            CodegenMojo.getInputFields(new TestProgramInputNotClassModel(), this);
+            testable.getInputFields(new TestProgramInputNotClassModel());
         }
         catch(MojoExecutionException e) {
             gotException = true;
@@ -224,7 +244,7 @@ public class CodegenMojoTest implements Logger {
     public void testWhenInputMultipleErrorsThenError() {
         boolean gotException = false;
         try {
-            CodegenMojo.getInputFields(new TestProgramInputMultipleErrors(), this);
+            testable.getInputFields(new TestProgramInputMultipleErrors());
         }
         catch(MojoExecutionException e) {
             gotException = true;
@@ -264,11 +284,9 @@ public class CodegenMojoTest implements Logger {
 
     @Test
     public void testGetHierarchyGivesChildrenAndParent() throws MojoExecutionException {
-        ClassModelList actual = CodegenMojo.getHierarchy(
+        ClassModelList actual = testable.getHierarchy(
                 Parent.class,
-                CodegenMojo.ClassLoaderAdapter.forCl(Parent.class.getClassLoader()),
-                "dummyProgram",
-                this);
+                ClassLoaderAdapter.forCl(Parent.class.getClassLoader()));
         Assert.assertEquals(2, actual.size());
         Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems(
                 "Parent", "Child"));
