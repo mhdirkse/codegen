@@ -199,6 +199,9 @@ public class FieldManipulationTest implements Logger {
                 true,
                 null);
         Assert.assertTrue(instance.run());
+        Assert.assertEquals(2, debugs.size());
+        Assert.assertEquals(1, infos.size());
+        Assert.assertEquals(0, errors.size());
     }
 
     @Test
@@ -208,6 +211,9 @@ public class FieldManipulationTest implements Logger {
                 false,
                 null);
         Assert.assertFalse(instance.run());
+        Assert.assertEquals(1, debugs.size());
+        Assert.assertEquals(1, infos.size());
+        Assert.assertEquals(1, errors.size());
     }
 
     @Test
@@ -217,5 +223,10 @@ public class FieldManipulationTest implements Logger {
                 true,
                 EXCEPTION);
         Assert.assertFalse(instance.run());
+        Assert.assertEquals(1, debugs.size());
+        Assert.assertEquals(1, infos.size());
+        Assert.assertNotNull(infos.get(0).e);
+        Assert.assertEquals(1, errors.size());
+        Assert.assertNotNull(errors.get(0).e);
     }
 }
