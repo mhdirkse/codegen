@@ -16,10 +16,19 @@ public class ClassLoaderAdapterTest {
     public void testGetHierarchyGivesChildrenAndParent() {
         ClassLoaderAdapter instance = ClassLoaderAdapter.forCl(Parent.class.getClassLoader());
         ClassModelList actual = instance.getHierarchy(
-                Parent.class);
-        Assert.assertEquals(2, actual.size());
+                Parent.class, null);
+        Assert.assertEquals(3, actual.size());
         Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems(
-                "Parent", "Child"));
+                "Parent", "Child", "Child2"));
+    }
+
+    @Test
+    public void testGetHierarchyWithInterfaceFiltersClassesImplementingInterface() {
+        ClassLoaderAdapter instance = ClassLoaderAdapter.forCl(Parent.class.getClassLoader());
+        ClassModelList actual = instance.getHierarchy(
+                Parent.class, TestInterface.class);
+        Assert.assertEquals(1, actual.size());
+        Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems("Child2"));
     }
 
     private List<String> getSimpleNames(Collection<ClassModel> classModels) {
@@ -34,5 +43,12 @@ public class ClassLoaderAdapterTest {
 
     @SuppressWarnings("unused")
     private class Child extends Parent {
+    }
+
+    interface TestInterface {
+    }
+
+    @SuppressWarnings("unused")
+    private class Child2 extends Parent implements TestInterface {
     }
 }

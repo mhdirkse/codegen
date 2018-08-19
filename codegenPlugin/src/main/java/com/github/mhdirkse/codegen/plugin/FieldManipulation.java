@@ -2,7 +2,9 @@ package com.github.mhdirkse.codegen.plugin;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
@@ -150,21 +152,36 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
         boolean runImpl() {
             TypeHierarchy annotationValue = f.getAnnotation(TypeHierarchy.class);
             String root = annotationValue.value();
-            Class<?> rootClass = null;
-            try {
-                rootClass = cla.loadClass(root);
-            } catch(ClassNotFoundException e) {
-                error(f, "Root class of type hierarchy not available: " + root);
+            String optionalFilterClass = annotationValue.filterIsA();
+            Class<?> rootClass = checkedLoadClass(root, "Root class of type hierarchy not available:");
+            if (Objects.isNull(rootClass)) {
                 return false;
             }
+            Class<?> filterClass = null;
+            if(!StringUtils.isBlank(optionalFilterClass)) {
+                filterClass = checkedLoadClass(optionalFilterClass, "Class of filterIsA is not available:");
+                if(Objects.isNull(filterClass)) {
+                    return false;
+                }
+            }
             try {
-                instantiatedObject = cla.getHierarchy(rootClass);
+                instantiatedObject = cla.getHierarchy(rootClass, filterClass);
                 f.set(program, instantiatedObject);
                 return true;
             } catch(IllegalAccessException e) {
                 error(f, "Could not set hierarchy");
                 return false;
             }
+        }
+
+        private Class<?> checkedLoadClass(final String className, final String messageIfNotFound) {
+            Class<?> clazz = null;
+            try {
+                clazz = cla.loadClass(className);
+            } catch(ClassNotFoundException e) {
+                error(f, messageIfNotFound + ": " + className);
+            }
+            return clazz;
         }
     }
 }

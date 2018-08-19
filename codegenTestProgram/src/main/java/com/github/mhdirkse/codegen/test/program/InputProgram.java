@@ -21,6 +21,7 @@ public class InputProgram implements Runnable {
     private static final String MY_INTERFACE_ABSTRACT_HANDLER = "MyInterfaceAbstractHandler";
     private static final String MY_INTERFACE_ABSTRACT_HANDLER_FULL = OUTPUT_PACKAGE + MY_INTERFACE_ABSTRACT_HANDLER;
     private static final String HIERARCHY_FULL = "com.github.mhdirkse.codegen.test.output.HierarchyInterface";
+    private static final String HIERARCHY_FILTERED_FULL = "com.github.mhdirkse.codegen.test.output.HierarchyFilteredInterface";
 
     @Input("com.github.mhdirkse.codegen.test.input.MyInterface")
     public ClassModel source;
@@ -40,6 +41,14 @@ public class InputProgram implements Runnable {
     @Output("interfaceTemplate")
     public VelocityContext hierarchy;
 
+    @TypeHierarchy(
+            value = "com.github.mhdirkse.codegen.test.input.Parent",
+            filterIsA = "com.github.mhdirkse.codegen.test.input.Composite")
+    public ClassModelList parentTypeHierarchyFiltered;
+
+    @Output("interfaceTemplate")
+    public VelocityContext hierarchyFiltered;
+    
     @Override
     public void run() {
         chain();
@@ -65,13 +74,21 @@ public class InputProgram implements Runnable {
     }
 
     private void hierarchy() {
+        populateHierarchy(HIERARCHY_FULL, parentTypeHierarchy, hierarchy);
+        populateHierarchy(HIERARCHY_FILTERED_FULL, parentTypeHierarchyFiltered, hierarchyFiltered);
+    }
+
+    private void populateHierarchy(
+            final String outputClass,
+            final ClassModelList classHierarchy,
+            final VelocityContext result) {
         ClassModel outputInterface = new ClassModel();
-        outputInterface.setFullName(HIERARCHY_FULL);
+        outputInterface.setFullName(outputClass);
         outputInterface.setMethods(
-            parentTypeHierarchy.stream()
+            classHierarchy.stream()
                 .map(this::getMethodModelOfArgumentClass)
                 .collect(Collectors.toList()));
-        hierarchy.put("target", outputInterface);
+        result.put("target", outputInterface);
     }
 
     private MethodModel getMethodModelOfArgumentClass(final ClassModel argumentClass) {

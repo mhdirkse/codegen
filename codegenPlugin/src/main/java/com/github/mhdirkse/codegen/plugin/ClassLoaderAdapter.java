@@ -1,6 +1,8 @@
 package com.github.mhdirkse.codegen.plugin;
 
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.reflections.Reflections;
@@ -12,10 +14,24 @@ abstract class ClassLoaderAdapter {
     abstract Class<?> loadClass(final String name) throws ClassNotFoundException;
     abstract ClassLoader getClassLoader();
 
-    final <R> ClassModelList getHierarchy(final Class<R> root) {
+    final <R> ClassModelList getHierarchy(final Class<R> root, final Class<?> interfaceToInherit) {
         Reflections r = new Reflections(root.getPackage().getName());
         Set<Class<? extends R>> subClasses = r.getSubTypesOf(root);
         subClasses.add(root);
+        subClasses = filterInterface(interfaceToInherit, subClasses);
+        return toClassModelList(subClasses);
+    }
+
+    private <R> Set<Class<? extends R>> filterInterface(final Class<?> interfaceToInherit,
+            Set<Class<? extends R>> subClasses) {
+        if (Objects.nonNull(interfaceToInherit)) {
+            subClasses = subClasses.stream()
+                    .filter((s) -> interfaceToInherit.isAssignableFrom(s)).collect(Collectors.toSet());
+        }
+        return subClasses;
+    }
+
+    private <R> ClassModelList toClassModelList(Set<Class<? extends R>> subClasses) {
         ClassModelList result = new ClassModelList();
         subClasses.forEach((s) -> {result.add(new ClassModel(s));});
         return result;

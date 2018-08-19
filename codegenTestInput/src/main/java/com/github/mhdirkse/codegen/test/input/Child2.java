@@ -5,5 +5,5 @@ package com.github.mhdirkse.codegen.test.input;
  * @author martijn
  *
  */
-public class Child2 extends Parent {
+public class Child2 extends Parent implements Composite {
 }
