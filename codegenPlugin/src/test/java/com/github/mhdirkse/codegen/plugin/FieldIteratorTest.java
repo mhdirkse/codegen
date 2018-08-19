@@ -29,13 +29,20 @@ public class FieldIteratorTest implements Logger {
 
     private List<LogItem> infos;
     private List<LogItem> errors;
+    private List<LogItem> debugs;
 
     private FieldIterator.OutputPopulator instance;
 
     @Before
     public void setUp() {
+        debugs = new ArrayList<>();
         infos = new ArrayList<>();
         errors = new ArrayList<>();
+    }
+
+    @Override
+    public void debug(final String msg) {
+        debugs.add(new LogItem(msg, null));
     }
 
     @Override
@@ -49,7 +56,12 @@ public class FieldIteratorTest implements Logger {
     }
 
     @Override
-    public void info(String msg, Throwable e) {
+    public void debug(final String msg, final Throwable e) {
+        debugs.add(new LogItem(msg, e));
+    }
+
+    @Override
+    public void info(final String msg, final Throwable e) {
         infos.add(new LogItem(msg, e));
     }
 

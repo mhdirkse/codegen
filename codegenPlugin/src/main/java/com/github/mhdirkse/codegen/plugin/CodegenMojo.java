@@ -56,6 +56,11 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     public String program;
 
     @Override
+    public void debug(final String msg) {
+        getLog().debug(msg);
+    }
+
+    @Override
     public void info(final String msg) {
         getLog().info(msg);
     }
@@ -63,6 +68,11 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     @Override
     public void error(final String msg) {
         getLog().error(msg);
+    }
+
+    @Override
+    public void debug(final String msg, final Throwable e) {
+        getLog().debug(msg, e);
     }
 
     @Override
@@ -82,9 +92,9 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
         Runnable instantiatedProgram = instantiate(program, Runnable.class);
         ClassLoaderAdapter cla = ClassLoaderAdapter.forRealm(Object.class, getClassRealm());
+        List<Optional<FieldManipulation>> outputManipulations = new FieldIterator.OutputPopulator(instantiatedProgram, this).run();
         List<Optional<FieldManipulation>> rawManipulations = new ArrayList<>();
         rawManipulations.addAll(new FieldIterator.InputPopulator(instantiatedProgram, this, cla).run());
-        List<Optional<FieldManipulation>> outputManipulations = new FieldIterator.OutputPopulator(instantiatedProgram, this).run();
         rawManipulations.addAll(outputManipulations);
         rawManipulations.addAll(new FieldIterator.HierarchyPopulator(instantiatedProgram, this, cla).run());
         List<FieldManipulation> manipulations = rawManipulations.stream()
@@ -142,7 +152,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
             File elementFile = new File(element);
             try {
                 URL url = elementFile.toURI().toURL();
-                getLog().info("Adding classpath element: " + url.toString());
+                getLog().debug("Adding classpath element: " + url.toString());
                 realm.addURL(url);
             } catch (MalformedURLException e) {
                 throw new MojoExecutionException("Malformed URL for file " + elementFile.toString(), e);
@@ -192,7 +202,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     private Writer writeOutputFileUnchecked(VelocityContext velocityContext, String templateFileName,
             String outputClass, File fileToWrite) throws IOException {
-        getLog().info(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
+        debug(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
                 fileToWrite.toString()));
         fileToWrite.getParentFile().mkdirs();
         Template template = velocityComponent.getEngine().getTemplate(templateFileName);

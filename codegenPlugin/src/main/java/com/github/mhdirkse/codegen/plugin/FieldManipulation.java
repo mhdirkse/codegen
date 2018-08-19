@@ -23,11 +23,11 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
     }
 
     public boolean run() {
-        info("Start populating...");
+        debug("Start populating...");
         try {
-            boolean success =  runImpl();
+            boolean success = runImpl();
             if(success) {
-                info("Populating succeeded.");
+                debug("Populating succeeded.");
             } else {
                 error("Populating failed.");
             }
@@ -41,6 +41,11 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
     abstract boolean runImpl() throws Exception;
 
     @Override
+    public void debug(final String msg) {
+        super.debug(f, msg);
+    }
+
+    @Override
     public void info(final String msg) {
         super.info(f, msg);
     }
@@ -48,6 +53,11 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
     @Override
     public void error(final String msg) {
         super.error(f, msg);
+    }
+
+    @Override
+    public void debug(final String msg, final Throwable e) {
+        super.debug(f,  msg, e);
     }
 
     @Override

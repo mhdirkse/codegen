@@ -14,6 +14,10 @@ abstract class AnnotationManipulation {
         this.logger = logger;
     }
 
+    public void debug(final Field f, final String msg) {
+        logger.debug(format(f, msg));
+    }
+
     public void info(final Field f, final String msg) {
         logger.info(format(f, msg));
     }
@@ -27,6 +31,10 @@ abstract class AnnotationManipulation {
 
     public void error(final Field f, final String msg) {
         logger.error(format(f, msg));
+    }
+
+    public void debug(final Field f, final String msg, final Throwable e) {
+        logger.debug(format(f, msg), e);
     }
 
     public void info(final Field f, final String msg, final Throwable e) {

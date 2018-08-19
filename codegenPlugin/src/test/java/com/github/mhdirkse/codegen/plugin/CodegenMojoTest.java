@@ -16,6 +16,7 @@ import com.github.mhdirkse.codegen.compiletime.Input;
 import com.github.mhdirkse.codegen.compiletime.Output;
 
 public class CodegenMojoTest implements Logger {
+    private final List<String> debugs = new ArrayList<>();
     private final List<String> infos = new ArrayList<>();
     private final List<String> errors = new ArrayList<>();
 
@@ -39,6 +40,11 @@ public class CodegenMojoTest implements Logger {
     }
 
     @Override
+    public void debug(final String msg) {
+        debugs.add(msg);
+    }
+
+    @Override
     public void info(final String msg) {
         infos.add(msg);
     }
@@ -46,6 +52,11 @@ public class CodegenMojoTest implements Logger {
     @Override
     public void error(final String msg) {
         errors.add(msg);
+    }
+
+    @Override
+    public void debug(final String msg, final Throwable e) {
+        throw new IllegalArgumentException(msg, e);
     }
 
     @Override

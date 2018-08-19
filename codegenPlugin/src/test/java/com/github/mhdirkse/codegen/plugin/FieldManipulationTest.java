@@ -1,6 +1,5 @@
 package com.github.mhdirkse.codegen.plugin;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +24,20 @@ public class FieldManipulationTest implements Logger {
         }
     }
 
+    private List<LogItem> debugs;
     private List<LogItem> infos;
     private List<LogItem> errors;
 
     @Before
     public void setUp() {
+        debugs = new ArrayList<>();
         infos = new ArrayList<>();
         errors = new ArrayList<>();
+    }
+
+    @Override
+    public void debug(final String msg) {
+        debugs.add(new LogItem(msg, null));
     }
 
     @Override
@@ -45,7 +51,12 @@ public class FieldManipulationTest implements Logger {
     }
 
     @Override
-    public void info(String msg, Throwable e) {
+    public void debug(final String msg, final Throwable e) {
+        debugs.add(new LogItem(msg, e));
+    }
+
+    @Override
+    public void info(final String msg, final Throwable e) {
         infos.add(new LogItem(msg, e));
     }
 
@@ -59,40 +70,36 @@ public class FieldManipulationTest implements Logger {
         public int aField;
     }
 
-    private enum Priority {INFO, ERROR};
-
     private static class FieldManipulationStub extends FieldManipulation {
         final boolean result;
-        final Priority priority;
         final Exception toThrow;
 
         FieldManipulationStub(
-                final Class<? extends Annotation> annotation,
-                final Field field,
                 final Logger logger,
                 final boolean result,
-                final Priority priority,
                 final Exception toThrow) {
-            super(annotation, field, logger);
+            super(
+                    Input.class,
+                    getSuperInputField(),
+                    logger);
             this.result = result;
-            this.priority = priority;
             this.toThrow = toThrow;
+        }
+
+        private static Field getSuperInputField() {
+            try {
+                return TestInput.class.getField("aField");
+            } catch(NoSuchFieldException e) {
+                throw new IllegalArgumentException(e);
+            }
         }
 
         @Override
         public boolean runImpl() throws Exception {
             if(toThrow == null) {
-                if(priority == Priority.ERROR) {
-                    error(MESSAGE);
-                } else {
-                    info(MESSAGE);
-                }
+                info(MESSAGE);
             } else {
-                if(priority == Priority.ERROR) {
-                    error(MESSAGE, toThrow);
-                } else {
-                    info(MESSAGE, toThrow);
-                }
+                info(MESSAGE, toThrow);
             }
             if(toThrow != null) {
                 throw toThrow;
@@ -102,15 +109,27 @@ public class FieldManipulationTest implements Logger {
     }
 
     @Test
-    public void testLogLineFormatInfo() throws Exception {
+    public void testLogLineFormatDebug() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 true,
-                Priority.INFO,
+                null);
+        instance.debug(MESSAGE);
+        Assert.assertEquals(1, debugs.size());
+        Assert.assertEquals(0, errors.size());
+        Assert.assertEquals(0, infos.size());
+        Assert.assertEquals("@Input aField: " + MESSAGE, debugs.get(0).msg);
+        Assert.assertNull(debugs.get(0).e);
+    }
+
+    @Test
+    public void testLogLineFormatInfo() throws Exception {
+        FieldManipulation instance = new FieldManipulationStub(
+                this,
+                true,
                 null);
         instance.info(MESSAGE);
+        Assert.assertEquals(0, debugs.size());
         Assert.assertEquals(0, errors.size());
         Assert.assertEquals(1, infos.size());
         Assert.assertEquals("@Input aField: " + MESSAGE, infos.get(0).msg);
@@ -120,13 +139,11 @@ public class FieldManipulationTest implements Logger {
     @Test
     public void testLogLineFormatError() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 true,
-                Priority.ERROR,
                 null);
         instance.error(MESSAGE);
+        Assert.assertEquals(0, debugs.size());
         Assert.assertEquals(1, errors.size());
         Assert.assertEquals(0, infos.size());
         Assert.assertEquals("@Input aField: " + MESSAGE, errors.get(0).msg);
@@ -134,15 +151,27 @@ public class FieldManipulationTest implements Logger {
     }
 
     @Test
-    public void testLogLineFormatInfoWithException() throws Exception {
+    public void testLogLineFormatDebugWithException() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 true,
-                Priority.INFO,
+                EXCEPTION);
+        instance.debug(MESSAGE, EXCEPTION);
+        Assert.assertEquals(1, debugs.size());
+        Assert.assertEquals(0, errors.size());
+        Assert.assertEquals(0, infos.size());
+        Assert.assertEquals("@Input aField: " + MESSAGE, debugs.get(0).msg);
+        Assert.assertEquals(EXCEPTION, debugs.get(0).e);
+    }
+
+    @Test
+    public void testLogLineFormatInfoWithException() throws Exception {
+        FieldManipulation instance = new FieldManipulationStub(
+                this,
+                true,
                 EXCEPTION);
         instance.info(MESSAGE, EXCEPTION);
+        Assert.assertEquals(0, debugs.size());
         Assert.assertEquals(0, errors.size());
         Assert.assertEquals(1, infos.size());
         Assert.assertEquals("@Input aField: " + MESSAGE, infos.get(0).msg);
@@ -152,13 +181,11 @@ public class FieldManipulationTest implements Logger {
     @Test
     public void testLogLineFormatErrorWithException() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 true,
-                Priority.ERROR,
                 EXCEPTION);
         instance.error(MESSAGE, EXCEPTION);
+        Assert.assertEquals(0, debugs.size());
         Assert.assertEquals(1, errors.size());
         Assert.assertEquals(0, infos.size());
         Assert.assertEquals("@Input aField: " + MESSAGE, errors.get(0).msg);
@@ -168,11 +195,8 @@ public class FieldManipulationTest implements Logger {
     @Test
     public void whenRunImplReturnsTrueThenRunReturnsTrue() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 true,
-                Priority.ERROR,
                 null);
         Assert.assertTrue(instance.run());
     }
@@ -180,12 +204,18 @@ public class FieldManipulationTest implements Logger {
     @Test
     public void whenRunImplReturnsFalseThenRunReturnsFalse() throws Exception {
         FieldManipulation instance = new FieldManipulationStub(
-                Input.class,
-                TestInput.class.getField("aField"),
                 this,
                 false,
-                Priority.ERROR,
                 null);
+        Assert.assertFalse(instance.run());
+    }
+
+    @Test
+    public void whenRunImplThrowsThenRunReturnsFalse() throws Exception {
+        FieldManipulation instance = new FieldManipulationStub(
+                this,
+                true,
+                EXCEPTION);
         Assert.assertFalse(instance.run());
     }
 }
