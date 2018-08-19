@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -174,11 +175,11 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     private void createOutputFiles(
             final List<Optional<FieldManipulation>> outputManipulations) throws MojoExecutionException {
         for(Optional<FieldManipulation> fm : outputManipulations) {
-            createOutputFilesUnchecked(fm.get());    
+            createOutputFileUnchecked(fm.get());    
         }
     }
 
-    private void createOutputFilesUnchecked(final FieldManipulation fm) throws MojoExecutionException {
+    private void createOutputFileUnchecked(final FieldManipulation fm) throws MojoExecutionException {
         Output annotation = fm.f.getAnnotation(Output.class);
         String template = annotation.value();
         VelocityContext velocityContext = (VelocityContext) fm.instantiatedObject;
@@ -202,7 +203,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     private Writer writeOutputFileUnchecked(VelocityContext velocityContext, String templateFileName,
             String outputClass, File fileToWrite) throws IOException {
-        debug(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
+        info(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
                 fileToWrite.toString()));
         fileToWrite.getParentFile().mkdirs();
         Template template = velocityComponent.getEngine().getTemplate(templateFileName);
@@ -238,17 +239,24 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         ClassModel getTarget(final VelocityContext velocityContext, final String fieldName)
                 throws MojoExecutionException {
             if (!velocityContext.containsKey("target")) {
-                String msg = String.format("Cannot get output file from VelocityContext %s", fieldName);
+                String msg = String.format("VelocityContext %s does not have \"target\" member. Cannot get output file name.", fieldName);
                 getLogger().error(msg);
                 throw new MojoExecutionException(msg);
             }
             Object targetAsObject = velocityContext.get("target");
             if (!(targetAsObject instanceof ClassModel)) {
-                String msg = String.format("Expected ClassModel as target in VelocityContext %s", fieldName);
+                String msg = String.format("Expected a ClassModel as \"target\" in VelocityContext %s. Cannot get output file name.", fieldName);
                 getLogger().error(msg);
                 throw new MojoExecutionException(msg);
             }
-            return (ClassModel) targetAsObject;
+            ClassModel targetAsClassModel = (ClassModel) targetAsObject;
+            if(StringUtils.isBlank(targetAsClassModel.getFullName())) {
+                String msg = String.format("ClassModel \"target\" does not have fullName, for field %s.",
+                        fieldName);
+                getLogger().error(msg);
+                throw new MojoExecutionException(msg);
+            }
+            return targetAsClassModel;
         }
 
         static File classToPathOfJavaFile(File base, String className) {

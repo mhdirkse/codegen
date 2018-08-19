@@ -87,13 +87,14 @@ abstract class FieldIterator extends AnnotationManipulation {
     private void checkAllFieldsPublic() {
         Set<Field> nonPublicInputFields = new HashSet<>(fieldsAnyModifier);
         nonPublicInputFields.removeAll(fields);
-        nonPublicInputFields.forEach((f) -> error(f, "Field is not public"));
+        nonPublicInputFields.forEach((f) -> error(f, "Field is not public."));
     }
 
     private void checkAllFieldsCorrectType() {
         Set<Field> nonClassModelInputFields = new HashSet<>(fieldsAnyType);
         nonClassModelInputFields.removeAll(fields);
-        nonClassModelInputFields.forEach((f) -> error(f, "Field is not " + targetType.getSimpleName()));
+        nonClassModelInputFields.forEach((f) -> error(f, String.format(
+                "Field is not %s.", targetType.getSimpleName())));
     }
 
     private void checkNoFieldsAllWrong() {
@@ -102,7 +103,7 @@ abstract class FieldIterator extends AnnotationManipulation {
         allWrongInputFields.removeAll(fieldsAnyModifier);
         allWrongInputFields.removeAll(fieldsAnyType);
         allWrongInputFields.forEach((f) -> error(f, String.format(
-                "Field is not public and not %s", targetType.getSimpleName())));
+                "Field is not public and not %s.", targetType.getSimpleName())));
     }
 
     private List<Optional<FieldManipulation>> getFieldManipulations() {

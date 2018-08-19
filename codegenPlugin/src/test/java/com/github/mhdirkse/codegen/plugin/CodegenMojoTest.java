@@ -121,10 +121,12 @@ public class CodegenMojoTest implements Logger {
     }
 
     @Test
-    public void testWhenVelocityContextHasTargetClassModelThenTargetReturned() 
+    public void testWhenVelocityContextHasTargetClassModelWithFullNameThenTargetReturned() 
             throws MojoExecutionException {
         VelocityContext input = new VelocityContext();
-        input.put("target", new ClassModel());
+        ClassModel cm = new ClassModel();
+        cm.setFullName("SomeClass");
+        input.put("target", cm);
         ClassModel actualTarget = testable.getTarget(input, "myField");
         Assert.assertNotNull(actualTarget);
         Assert.assertEquals(0, errors.size());
@@ -143,7 +145,9 @@ public class CodegenMojoTest implements Logger {
         Assert.assertTrue(gotException);
         Assert.assertEquals(1, errors.size());
         Assert.assertThat(errors.get(0), CoreMatchers.containsString("myField"));
-        Assert.assertThat(errors.get(0), CoreMatchers.containsString("Cannot get output file from VelocityContext"));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("Cannot get output file name."));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("myField"));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("\"target\""));
     }
 
     @Test
@@ -160,6 +164,26 @@ public class CodegenMojoTest implements Logger {
         Assert.assertTrue(gotException);
         Assert.assertEquals(1, errors.size());
         Assert.assertThat(errors.get(0), CoreMatchers.containsString("myField"));
-        Assert.assertThat(errors.get(0), CoreMatchers.containsString("Expected ClassModel as target in VelocityContext"));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("Expected a ClassModel as \"target\" in VelocityContext"));
+    }
+
+    @Test
+    public void whenClassModelInVelocityContextNoFullNameThenError() {
+        boolean gotException = false;
+        VelocityContext input = new VelocityContext();
+        ClassModel cm = new ClassModel();
+        cm.setFullName("");
+        input.put("target", cm);
+        try {
+            testable.getTarget(input, "myField");
+        }
+        catch(MojoExecutionException e) {
+            gotException = true;
+        }
+        Assert.assertTrue(gotException);
+        Assert.assertEquals(1, errors.size());
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("myField"));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("ClassModel \"target\" does not have fullName"));
+        Assert.assertThat(errors.get(0), CoreMatchers.containsString("."));
     }
 }

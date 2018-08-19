@@ -229,4 +229,19 @@ public class FieldManipulationTest implements Logger {
         Assert.assertEquals(1, errors.size());
         Assert.assertNotNull(errors.get(0).e);
     }
+
+    @Test
+    public void testHierarchyPopulatorInfoErrors() {
+        FieldManipulation.HierarchyPopulatorInfo instance = new FieldManipulation.HierarchyPopulatorInfo(
+                null, null, null);
+        Assert.assertFalse(instance.hasErrors);
+        instance.addError(false);
+        Assert.assertFalse(instance.hasErrors);
+        instance.addError(true);
+        Assert.assertTrue(instance.hasErrors);
+        instance.addError(true);
+        Assert.assertTrue(instance.hasErrors);
+        instance.addError(false);
+        Assert.assertTrue(instance.hasErrors);
+    }
 }

@@ -95,7 +95,7 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
             try {
                 clazz = cla.loadClass(source);
             } catch(ClassNotFoundException e) {
-                error(String.format("Class not found: %s", source));
+                error(String.format("Class not found: %s.", source));
                 return false;
             }
             try {
@@ -150,27 +150,62 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
 
         @Override
         boolean runImpl() {
-            TypeHierarchy annotationValue = f.getAnnotation(TypeHierarchy.class);
-            String root = annotationValue.value();
-            String optionalFilterClass = annotationValue.filterIsA();
-            Class<?> rootClass = checkedLoadClass(root, "Root class of type hierarchy not available:");
-            if (Objects.isNull(rootClass)) {
+            HierarchyPopulatorInfo info = new HierarchyPopulatorInfo(f, cla, this);
+            info.run();
+            if(info.hasErrors) {
                 return false;
             }
-            Class<?> filterClass = null;
-            if(!StringUtils.isBlank(optionalFilterClass)) {
-                filterClass = checkedLoadClass(optionalFilterClass, "Class of filterIsA is not available:");
-                if(Objects.isNull(filterClass)) {
-                    return false;
-                }
-            }
             try {
-                instantiatedObject = cla.getHierarchy(rootClass, filterClass);
+                instantiatedObject = cla.getHierarchy(info.rootClass, info.filterClass);
                 f.set(program, instantiatedObject);
                 return true;
             } catch(IllegalAccessException e) {
-                error(f, "Could not set hierarchy");
+                error(f, "Could not set hierarchy.");
                 return false;
+            }
+        }
+    }
+
+    static class HierarchyPopulatorInfo {
+        private final Field f;
+        private final ClassLoaderAdapter cla;
+        private final AnnotationManipulation logger;
+
+        boolean hasErrors = false;
+        Class<?> rootClass;
+        Class<?> filterClass;
+
+        HierarchyPopulatorInfo(
+                final Field f,
+                final ClassLoaderAdapter cla,
+                final AnnotationManipulation logger) {
+            this.f = f;
+            this.cla = cla;
+            this.logger = logger;
+        }
+
+        void run() {
+            TypeHierarchy annotationValue = f.getAnnotation(TypeHierarchy.class);
+            String root = annotationValue.value();
+            String optionalFilterClass = annotationValue.filterIsA();
+            checkedGetRootClass(root);
+            checkedGetOptionalFilterClass(optionalFilterClass);
+        }
+
+        private void checkedGetRootClass(String root) {
+            rootClass = checkedLoadClass(root, "Root class of type hierarchy not available");
+            addError(Objects.isNull(rootClass));
+        }
+
+        void addError(boolean newError) {
+            hasErrors = (hasErrors || newError);
+        }
+
+        private void checkedGetOptionalFilterClass(String optionalFilterClass) {
+            filterClass = null;
+            if(!StringUtils.isBlank(optionalFilterClass)) {
+                filterClass = checkedLoadClass(optionalFilterClass, "Class of filterIsA is not available");
+                addError(Objects.isNull(filterClass));
             }
         }
 
@@ -179,7 +214,7 @@ abstract class FieldManipulation extends AnnotationManipulation implements Logge
             try {
                 clazz = cla.loadClass(className);
             } catch(ClassNotFoundException e) {
-                error(f, messageIfNotFound + ": " + className);
+                logger.error(f, messageIfNotFound + ": " + className + ".");
             }
             return clazz;
         }

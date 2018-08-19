@@ -48,7 +48,7 @@ public class InputProgram implements Runnable {
 
     @Output("interfaceTemplate")
     public VelocityContext hierarchyFiltered;
-    
+
     @Override
     public void run() {
         chain();
