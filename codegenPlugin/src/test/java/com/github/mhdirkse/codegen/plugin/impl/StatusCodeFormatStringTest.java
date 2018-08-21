@@ -30,4 +30,12 @@ public class StatusCodeFormatStringTest {
         Assert.assertFalse(validFormattersRemoved.contains("{"));
         Assert.assertFalse(validFormattersRemoved.contains("}"));
     }
+
+    @Test
+    public void allFormattersEndWithDot() {
+        String fmt = statusCode.getFormatString();
+        Assert.assertEquals(
+                Character.valueOf('.').toString(),
+                Character.valueOf(fmt.charAt(fmt.length() - 1)).toString());
+    }
 }
