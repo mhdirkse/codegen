@@ -7,13 +7,18 @@ class ServiceFactory {
     private Runnable program;
 
     private FieldListerService fieldLister;
-
     FieldListerService fieldLister() {
         return fieldLister;
     }
 
-    ServiceFactory(final Runnable program) {
+    private StatusReportingService reporter;
+    StatusReportingService reporter() {
+        return reporter;
+    }
+
+    ServiceFactory(final Runnable program, final Logger logger) {
         this.program = program;
         fieldLister = new FieldListerService(this);
+        reporter = new StatusReportingServiceImpl(logger);
     }
 }

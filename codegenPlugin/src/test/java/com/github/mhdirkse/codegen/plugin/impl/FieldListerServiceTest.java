@@ -29,7 +29,7 @@ public class FieldListerServiceTest {
 
     @Before
     public void setUp() {
-        service = new ServiceFactory(new Program()).fieldLister();
+        service = new ServiceFactory(new Program(), null).fieldLister();
     }
 
     @Test
