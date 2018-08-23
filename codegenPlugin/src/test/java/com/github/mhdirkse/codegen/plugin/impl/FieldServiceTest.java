@@ -21,7 +21,7 @@ public class FieldServiceTest {
     private StatusReportingServiceStub statusReportingService;
 
     @Mock
-    private FieldServiceErrorCallback callback;
+    private FieldServiceCallback callback;
 
     @Before
     public void setUp() {

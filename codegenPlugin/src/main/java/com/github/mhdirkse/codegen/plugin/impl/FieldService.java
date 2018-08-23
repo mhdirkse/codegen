@@ -6,9 +6,9 @@ import java.util.Optional;
 
 class FieldService {
     private final ServiceFactory sf;
-    private final FieldServiceErrorCallback callback;
+    private final FieldServiceCallback callback;
 
-    FieldService(final ServiceFactory sf, final FieldServiceErrorCallback callback) {
+    FieldService(final ServiceFactory sf, final FieldServiceCallback callback) {
         this.sf = sf;
         this.callback = callback;
     }

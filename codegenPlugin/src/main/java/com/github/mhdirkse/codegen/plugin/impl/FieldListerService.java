@@ -18,7 +18,7 @@ class FieldListerService {
     @SuppressWarnings("unchecked")
     <T extends Annotation> Set<Field> getFields(
             final Class<T> annotationClass,
-            final FieldServiceErrorCallback callback) {
+            final FieldListerServiceCallback callback) {
         Set<Field> allFields = ReflectionUtils.getAllFields(
                 sf.getProgram().getClass(),
                 ReflectionUtils.withAnnotation(annotationClass));

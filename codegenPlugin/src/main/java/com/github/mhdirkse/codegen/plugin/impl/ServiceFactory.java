@@ -18,7 +18,7 @@ abstract class ServiceFactory {
 
     abstract ClassService classService();
 
-    FieldService fieldService(final FieldServiceErrorCallback callback) {
+    FieldService fieldService(final FieldServiceCallback callback) {
         return new FieldService(this, callback);
     }
 
