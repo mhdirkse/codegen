@@ -18,8 +18,14 @@ abstract class ServiceFactory {
 
     abstract ClassService classService();
 
-    FieldService fieldService(final FieldServiceCallback callback) {
-        return new FieldService(this, callback);
+    private FieldService fieldService;
+    FieldService fieldService() {
+        return fieldService;
+    }
+
+    private VelocityContextService velocityContextService;
+    VelocityContextService velocityContextService() {
+        return velocityContextService;
     }
 
     ServiceFactory(final Runnable program, final Logger logger) {
@@ -29,6 +35,8 @@ abstract class ServiceFactory {
     ServiceFactory(final Runnable program, final StatusReportingService reporter) {
         this.program = program;
         this.reporter = reporter;
-        fieldLister = new FieldListerService(this);        
+        this.fieldLister = new FieldListerService(this);
+        this.fieldService = new FieldService(this);
+        this.velocityContextService = new VelocityContextService(this);
     }
 }

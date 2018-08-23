@@ -21,13 +21,13 @@ public class FieldServiceTest {
     private StatusReportingServiceStub statusReportingService;
 
     @Mock
-    private FieldServiceCallback callback;
+    private FieldService.Callback callback;
 
     @Before
     public void setUp() {
         statusReportingService = new StatusReportingServiceStub();
         instance = new ServiceFactoryImpl(new TestInput(), statusReportingService, null)
-                .fieldService(callback);
+                .fieldService();
     }
 
     @SuppressWarnings("unused")
@@ -44,7 +44,7 @@ public class FieldServiceTest {
     @Test
     public void whenFieldIsNotFinalThenCheckNotFinalSucceeds() throws NoSuchFieldException {
         replay(callback);
-        instance.checkNotFinal(TestInput.class.getField("staticField"));
+        instance.checkNotFinal(TestInput.class.getField("staticField"), callback);
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -57,7 +57,7 @@ public class FieldServiceTest {
                         StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
                         Input.class, field, "final"));
         replay(callback);
-        instance.checkNotFinal(field);
+        instance.checkNotFinal(field, callback);
         verify(callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Status actualStatus = statusReportingService.getStatusses().get(0);
@@ -71,7 +71,7 @@ public class FieldServiceTest {
     @Test
     public void whenFieldIsNotStaticThenCheckNotStaticSucceeds() throws NoSuchFieldException {
         replay(callback);
-        instance.checkNotStatic(TestInput.class.getField("finalField"));
+        instance.checkNotStatic(TestInput.class.getField("finalField"), callback);
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -84,7 +84,7 @@ public class FieldServiceTest {
                         StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
                         Input.class, field, "static"));
         replay(callback);
-        instance.checkNotStatic(field);
+        instance.checkNotStatic(field, callback);
         verify(callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Status actualStatus = statusReportingService.getStatusses().get(0);
@@ -99,7 +99,7 @@ public class FieldServiceTest {
     public void whenTypeMatchesThenCheckTypeDoesNothing() throws NoSuchFieldException {
         Field field = TestInput.class.getField("finalField");
         replay(callback);
-        instance.checkType(field, String.class);
+        instance.checkType(field, String.class, callback);
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -111,7 +111,7 @@ public class FieldServiceTest {
                 Status.forFieldError(StatusCode.FIELD_TYPE_MISMATCH,
                         Override.class, field, "dummy", "dummy"));
         replay(callback);
-        instance.checkType(field, Integer.class);
+        instance.checkType(field, Integer.class, callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Assert.assertEquals(
                 StatusCode.FIELD_TYPE_MISMATCH,
@@ -121,8 +121,8 @@ public class FieldServiceTest {
     @Test
     public void testFieldServiceSetAndGetField() throws NoSuchFieldException {
         Field field = TestInput.class.getField("normalField");
-        instance.setField(field, "some string");
-        String retrieved = instance.getField(field).map(v -> String.class.cast(v)).get();
+        instance.setField(field, "some string", callback);
+        String retrieved = instance.getField(field, callback).map(v -> String.class.cast(v)).get();
         Assert.assertEquals("some string", retrieved);
     }
 }

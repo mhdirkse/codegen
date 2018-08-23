@@ -5,15 +5,20 @@ import java.lang.reflect.Modifier;
 import java.util.Optional;
 
 class FieldService {
-    private final ServiceFactory sf;
-    private final FieldServiceCallback callback;
-
-    FieldService(final ServiceFactory sf, final FieldServiceCallback callback) {
-        this.sf = sf;
-        this.callback = callback;
+    interface Callback {
+        Status getStatusAccessModifierError(String modifier);
+        Status getStatusTypeMismatch(Class<?> actual);
+        Status getStatusFieldGetError();
+        Status getStatusFieldSetError();
     }
 
-    void checkNotFinal(final Field field) {
+    private final ServiceFactory sf;
+
+    FieldService(final ServiceFactory sf) {
+        this.sf = sf;
+    }
+
+    void checkNotFinal(final Field field, final Callback callback) {
         boolean isFinal = Modifier.isFinal(field.getModifiers());
         if(isFinal) {
             Status status = callback.getStatusAccessModifierError("final");
@@ -21,7 +26,7 @@ class FieldService {
         }
     }
 
-    void checkNotStatic(final Field field) {
+    void checkNotStatic(final Field field, final Callback callback) {
         boolean isStatic = Modifier.isStatic(field.getModifiers());
         if(isStatic) {
             Status status = callback.getStatusAccessModifierError("static");
@@ -29,7 +34,7 @@ class FieldService {
         }
     }
 
-    <T> void checkType(final Field field, final Class<T> expectedType) {
+    <T> void checkType(final Field field, final Class<T> expectedType, final Callback callback) {
         Class<?> actualType = field.getType();
         if(!actualType.equals(expectedType)) {
             Status status = callback.getStatusTypeMismatch(actualType);
@@ -37,7 +42,7 @@ class FieldService {
         }
     }
 
-    Optional<Object> getField(final Field field) {
+    Optional<Object> getField(final Field field, final Callback callback) {
         try {
             return Optional.ofNullable(field.get(sf.getProgram()));
         }
@@ -48,7 +53,7 @@ class FieldService {
         }
     }
 
-    void setField(final Field field, final Object value) {
+    void setField(final Field field, final Object value, final Callback callback) {
         try {
             field.set(sf.getProgram(), value);
         }
