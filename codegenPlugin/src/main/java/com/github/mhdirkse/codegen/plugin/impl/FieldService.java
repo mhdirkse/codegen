@@ -27,4 +27,12 @@ class FieldService {
             sf.reporter().report(status);
         }
     }
+
+    <T> void checkType(final Field field, final Class<T> expectedType) {
+        Class<?> actualType = field.getType();
+        if(!actualType.equals(expectedType)) {
+            Status status = callback.getStatusTypeMismatch(actualType);
+            sf.reporter().report(status);
+        }
+    }
 }

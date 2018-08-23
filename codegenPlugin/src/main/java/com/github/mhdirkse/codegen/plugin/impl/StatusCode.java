@@ -9,8 +9,9 @@ enum StatusCode {
     TEST_STATUS_TWO_ARGS("Some status about: {1} and {2}."),
 
     FIELD_MISSING_ACCESS_MODIFIER("@{1} field {2} misses modifier {3}."),
-    FIELD_UNWANTED_ACCESS_MODIFIER("@{1} field {2} should not be {3}.");
-
+    FIELD_UNWANTED_ACCESS_MODIFIER("@{1} field {2} should not be {3}."),
+    FIELD_TYPE_MISMATCH("@{1} field {2} should be {3} but was {4}.");
+    
     StatusCode(final String formatString) {
         this.formatString = formatString;
     }

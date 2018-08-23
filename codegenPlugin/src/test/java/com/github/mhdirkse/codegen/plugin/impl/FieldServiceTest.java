@@ -45,6 +45,7 @@ public class FieldServiceTest {
         replay(callback);
         instance.checkNotFinal(TestInput.class.getField("staticField"));
         verify(callback);
+        Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
 
     @Test
@@ -71,6 +72,7 @@ public class FieldServiceTest {
         replay(callback);
         instance.checkNotStatic(TestInput.class.getField("finalField"));
         verify(callback);
+        Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
 
     @Test
@@ -90,5 +92,28 @@ public class FieldServiceTest {
         Assert.assertArrayEquals(
                 new String[] {"Input", "staticField", "static"},
                 actualStatus.getArguments());
+    }
+
+    @Test
+    public void whenTypeMatchesThenCheckTypeDoesNothing() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("finalField");
+        replay(callback);
+        instance.checkType(field, String.class);
+        verify(callback);
+        Assert.assertEquals(0, statusReportingService.getStatusses().size());
+    }
+
+    @Test
+    public void whenTypeMismatchThenCheckTypeGivesError() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("finalField");
+        expect(callback.getStatusTypeMismatch(String.class)).andReturn(
+                Status.forFieldError(StatusCode.FIELD_TYPE_MISMATCH,
+                        Override.class, field, "dummy", "dummy"));
+        replay(callback);
+        instance.checkType(field, Integer.class);
+        Assert.assertEquals(1, statusReportingService.getStatusses().size());
+        Assert.assertEquals(
+                StatusCode.FIELD_TYPE_MISMATCH,
+                statusReportingService.getStatusses().get(0).getStatusCode());
     }
 }
