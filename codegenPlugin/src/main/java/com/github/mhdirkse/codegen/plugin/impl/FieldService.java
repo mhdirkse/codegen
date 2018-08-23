@@ -2,6 +2,7 @@ package com.github.mhdirkse.codegen.plugin.impl;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Optional;
 
 class FieldService {
     private final ServiceFactory sf;
@@ -33,6 +34,27 @@ class FieldService {
         if(!actualType.equals(expectedType)) {
             Status status = callback.getStatusTypeMismatch(actualType);
             sf.reporter().report(status);
+        }
+    }
+
+    Optional<Object> getField(final Field field, final Object subject) {
+        try {
+            return Optional.ofNullable(field.get(subject));
+        }
+        catch(Exception e) {
+            Status status = callback.getStatusFieldGetError();
+            sf.reporter().report(status, e);
+            return Optional.empty();
+        }
+    }
+
+    void setField(final Field field, final Object subject, final Object value) {
+        try {
+            field.set(subject, value);
+        }
+        catch(Exception e) {
+            Status status = callback.getStatusFieldSetError();
+            sf.reporter().report(status, e);
         }
     }
 }

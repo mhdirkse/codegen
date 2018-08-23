@@ -34,6 +34,7 @@ public class FieldServiceTest {
     private static class TestInput implements Runnable {
         public final String finalField = "finalField";
         public static String staticField = "staticField";
+        public String normalField;
 
         @Override
         public void run() {
@@ -115,5 +116,16 @@ public class FieldServiceTest {
         Assert.assertEquals(
                 StatusCode.FIELD_TYPE_MISMATCH,
                 statusReportingService.getStatusses().get(0).getStatusCode());
+    }
+
+    @Test
+    public void testFieldServiceSetAndGetField() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("normalField");
+        TestInput input = new TestInput();
+        Assert.assertNull(input.normalField);
+        instance.setField(field, input, "some string");
+        Assert.assertEquals("some string", input.normalField);
+        String retrieved = instance.getField(field, input).map(v -> String.class.cast(v)).get();
+        Assert.assertEquals("some string", retrieved);
     }
 }

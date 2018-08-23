@@ -14,9 +14,20 @@ class StatusReportingServiceImpl implements StatusReportingService {
     }
 
     @Override
-    public void report(Status status) {
+    public void report(final Status status) {
+        String msg = update(status);
+        status.getLogPriority().log(msg, logger);
+    }
+
+    @Override
+    public void report(final Status status, final Throwable e) {
+        String msg = update(status);
+        status.getLogPriority().log(msg, e, logger);
+    }
+
+    private String update(final Status status) {
         if(status.getLogPriority() == LogPriority.ERROR) {hasErrors = true;};
         String msg = status.getStatusCode().format(status.getArguments());
-        status.getLogPriority().log(msg, logger);
+        return msg;
     }
 }

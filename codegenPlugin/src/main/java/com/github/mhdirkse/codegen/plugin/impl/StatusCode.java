@@ -10,7 +10,9 @@ enum StatusCode {
 
     FIELD_MISSING_ACCESS_MODIFIER("@{1} field {2} misses modifier {3}."),
     FIELD_UNWANTED_ACCESS_MODIFIER("@{1} field {2} should not be {3}."),
-    FIELD_TYPE_MISMATCH("@{1} field {2} should be {3} but was {4}.");
+    FIELD_TYPE_MISMATCH("@{1} field {2} should be {3} but was {4}."),
+    FIELD_GET_ERROR("@{1} field {2} could not be read."),
+    FIELD_SET_ERROR("@{1} field {2} could not be set.");
     
     StatusCode(final String formatString) {
         this.formatString = formatString;

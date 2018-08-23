@@ -18,4 +18,9 @@ class StatusReportingServiceStub implements StatusReportingService {
     public boolean hasErrors() {
         throw new IllegalStateException("Operation not supported");
     }
+
+    @Override
+    public void report(final Status status, final Throwable e) {
+        throw new IllegalArgumentException("Method not supported");
+    }
 }
