@@ -16,9 +16,9 @@ class AccessModifierCheckService {
         this.callback = callback;
     }
 
-    void checkFinal(final Field field) {
+    void checkNotFinal(final Field field) {
         boolean isFinal = Modifier.isFinal(field.getModifiers());
-        if(!isFinal) {
+        if(isFinal) {
             Status status = callback.getStatusAccessModifierError("final");
             sf.reporter().report(status);
         }

@@ -41,29 +41,28 @@ public class AccessModifierCheckServiceTest {
     }
 
     @Test
-    public void whenFieldIsFinalThenCheckFinalSucceeds() throws NoSuchFieldException {
+    public void whenFieldIsNotFinalThenCheckNotFinalSucceeds() throws NoSuchFieldException {
         replay(callback);
-        instance.checkFinal(TestInput.class.getField("finalField"));
+        instance.checkNotFinal(TestInput.class.getField("staticField"));
         verify(callback);
     }
 
     @Test
-    public void whenFieldIsNotFinalThenCheckFinalFails() throws NoSuchFieldException {
-        Field field = TestInput.class.getField("staticField");
+    public void whenFieldIsFinalThenCheckNotFinalFails() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("finalField");
         expect(callback.getStatusAccessModifierError("final")).andReturn(
                 Status.forFieldError(
-                        StatusCode.FIELD_MISSING_ACCESS_MODIFIER,
+                        StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
                         Input.class, field, "final"));
         replay(callback);
-        instance.checkFinal(field);
+        instance.checkNotFinal(field);
         verify(callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Status actualStatus = statusReportingService.getStatusses().get(0);
-        Assert.assertEquals(StatusCode.FIELD_MISSING_ACCESS_MODIFIER, actualStatus.getStatusCode());
+        Assert.assertEquals(StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER, actualStatus.getStatusCode());
         Assert.assertEquals(LogPriority.ERROR, actualStatus.getLogPriority());
         Assert.assertArrayEquals(
-                new String[] {"Input", "staticField", "final"},
+                new String[] {"Input", "finalField", "final"},
                 actualStatus.getArguments());
     }
-
 }
