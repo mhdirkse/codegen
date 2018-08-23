@@ -121,11 +121,8 @@ public class FieldServiceTest {
     @Test
     public void testFieldServiceSetAndGetField() throws NoSuchFieldException {
         Field field = TestInput.class.getField("normalField");
-        TestInput input = new TestInput();
-        Assert.assertNull(input.normalField);
-        instance.setField(field, input, "some string");
-        Assert.assertEquals("some string", input.normalField);
-        String retrieved = instance.getField(field, input).map(v -> String.class.cast(v)).get();
+        instance.setField(field, "some string");
+        String retrieved = instance.getField(field).map(v -> String.class.cast(v)).get();
         Assert.assertEquals("some string", retrieved);
     }
 }

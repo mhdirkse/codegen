@@ -37,9 +37,9 @@ class FieldService {
         }
     }
 
-    Optional<Object> getField(final Field field, final Object subject) {
+    Optional<Object> getField(final Field field) {
         try {
-            return Optional.ofNullable(field.get(subject));
+            return Optional.ofNullable(field.get(sf.getProgram()));
         }
         catch(Exception e) {
             Status status = callback.getStatusFieldGetError();
@@ -48,9 +48,9 @@ class FieldService {
         }
     }
 
-    void setField(final Field field, final Object subject, final Object value) {
+    void setField(final Field field, final Object value) {
         try {
-            field.set(subject, value);
+            field.set(sf.getProgram(), value);
         }
         catch(Exception e) {
             Status status = callback.getStatusFieldSetError();
