@@ -4,14 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
 class AccessModifierCheckService {
-    interface Callback {
-        Status getStatusAccessModifierError(String modifier);
-    }
-
     private final ServiceFactory sf;
-    private final Callback callback;
+    private final AccessModifierErrorCallback callback;
 
-    AccessModifierCheckService(final ServiceFactory sf, final Callback callback) {
+    AccessModifierCheckService(final ServiceFactory sf, final AccessModifierErrorCallback callback) {
         this.sf = sf;
         this.callback = callback;
     }

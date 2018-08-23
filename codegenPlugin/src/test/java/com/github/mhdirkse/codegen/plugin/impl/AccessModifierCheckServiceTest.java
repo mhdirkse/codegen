@@ -21,7 +21,7 @@ public class AccessModifierCheckServiceTest {
     private StatusReportingServiceStub statusReportingService;
 
     @Mock
-    private AccessModifierCheckService.Callback callback;
+    private AccessModifierErrorCallback callback;
 
     @Before
     public void setUp() {

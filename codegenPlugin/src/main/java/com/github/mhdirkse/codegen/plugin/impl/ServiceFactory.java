@@ -16,7 +16,7 @@ class ServiceFactory {
         return reporter;
     }
 
-    AccessModifierCheckService accessModifierChecker(final AccessModifierCheckService.Callback callback) {
+    AccessModifierCheckService accessModifierChecker(final AccessModifierErrorCallback callback) {
         return new AccessModifierCheckService(this, callback);
     }
 
