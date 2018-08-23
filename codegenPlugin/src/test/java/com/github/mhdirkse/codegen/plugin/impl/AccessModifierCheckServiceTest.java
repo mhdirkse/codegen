@@ -65,4 +65,30 @@ public class AccessModifierCheckServiceTest {
                 new String[] {"Input", "finalField", "final"},
                 actualStatus.getArguments());
     }
+
+    @Test
+    public void whenFieldIsNotStaticThenCheckNotStaticSucceeds() throws NoSuchFieldException {
+        replay(callback);
+        instance.checkNotStatic(TestInput.class.getField("finalField"));
+        verify(callback);
+    }
+
+    @Test
+    public void whenFieldIsStaticThenCheckNotStaticFails() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("staticField");
+        expect(callback.getStatusAccessModifierError("static")).andReturn(
+                Status.forFieldError(
+                        StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
+                        Input.class, field, "static"));
+        replay(callback);
+        instance.checkNotStatic(field);
+        verify(callback);
+        Assert.assertEquals(1, statusReportingService.getStatusses().size());
+        Status actualStatus = statusReportingService.getStatusses().get(0);
+        Assert.assertEquals(StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER, actualStatus.getStatusCode());
+        Assert.assertEquals(LogPriority.ERROR, actualStatus.getLogPriority());
+        Assert.assertArrayEquals(
+                new String[] {"Input", "staticField", "static"},
+                actualStatus.getArguments());
+    }
 }

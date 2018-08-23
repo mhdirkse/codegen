@@ -23,4 +23,12 @@ class AccessModifierCheckService {
             sf.reporter().report(status);
         }
     }
+
+    void checkNotStatic(final Field field) {
+        boolean isStatic = Modifier.isStatic(field.getModifiers());
+        if(isStatic) {
+            Status status = callback.getStatusAccessModifierError("static");
+            sf.reporter().report(status);
+        }
+    }
 }
