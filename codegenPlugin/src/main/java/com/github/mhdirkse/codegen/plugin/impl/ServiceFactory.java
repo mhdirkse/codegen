@@ -28,6 +28,8 @@ abstract class ServiceFactory {
         return velocityContextService;
     }
 
+    abstract FileWriteService fileWriteService();
+
     ServiceFactory(final Runnable program, final Logger logger) {
         this(program, new StatusReportingServiceImpl(logger));
     }

@@ -19,6 +19,15 @@ class ServiceFactoryImpl extends ServiceFactory {
         return classService;
     }
 
+    @Override
+    FileWriteService fileWriteService() {
+        return new FileWriteService() {
+            @Override
+            void write(FileContentsDefinition fcd) {
+            }
+        };
+    }
+
     private static final class ClassServiceImpl extends ClassService {
         @Setter
         private ClassLoader cl;
