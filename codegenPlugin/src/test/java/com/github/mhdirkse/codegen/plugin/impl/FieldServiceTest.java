@@ -16,18 +16,18 @@ import org.junit.runner.RunWith;
 import com.github.mhdirkse.codegen.compiletime.Input;
 
 @RunWith(EasyMockRunner.class)
-public class AccessModifierCheckServiceTest {
-    private AccessModifierCheckService instance;
+public class FieldServiceTest {
+    private FieldService instance;
     private StatusReportingServiceStub statusReportingService;
 
     @Mock
-    private AccessModifierErrorCallback callback;
+    private FieldServiceErrorCallback callback;
 
     @Before
     public void setUp() {
         statusReportingService = new StatusReportingServiceStub();
         instance = new ServiceFactory(new TestInput(), statusReportingService)
-                .accessModifierChecker(callback);
+                .fieldService(callback);
     }
 
     @SuppressWarnings("unused")

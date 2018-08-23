@@ -16,8 +16,8 @@ class ServiceFactory {
         return reporter;
     }
 
-    AccessModifierCheckService accessModifierChecker(final AccessModifierErrorCallback callback) {
-        return new AccessModifierCheckService(this, callback);
+    FieldService fieldService(final FieldServiceErrorCallback callback) {
+        return new FieldService(this, callback);
     }
 
     ServiceFactory(final Runnable program, final Logger logger) {
