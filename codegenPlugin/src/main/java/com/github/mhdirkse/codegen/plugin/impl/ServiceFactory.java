@@ -2,7 +2,7 @@ package com.github.mhdirkse.codegen.plugin.impl;
 
 import lombok.Getter;
 
-class ServiceFactory {
+abstract class ServiceFactory {
     @Getter
     private Runnable program;
 
@@ -15,6 +15,8 @@ class ServiceFactory {
     StatusReportingService reporter() {
         return reporter;
     }
+
+    abstract ClassService classService();
 
     FieldService fieldService(final FieldServiceErrorCallback callback) {
         return new FieldService(this, callback);

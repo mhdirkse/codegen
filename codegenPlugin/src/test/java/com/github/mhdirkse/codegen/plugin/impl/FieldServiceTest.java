@@ -26,7 +26,7 @@ public class FieldServiceTest {
     @Before
     public void setUp() {
         statusReportingService = new StatusReportingServiceStub();
-        instance = new ServiceFactory(new TestInput(), statusReportingService)
+        instance = new ServiceFactoryImpl(new TestInput(), statusReportingService, null)
                 .fieldService(callback);
     }
 

@@ -32,8 +32,6 @@ public class FieldListerServiceTest {
         @Output("someTemplate")
         VelocityContext velocityContext;
 
-        public String dummy;
-
         @Override
         public void run() {
         }
@@ -42,7 +40,7 @@ public class FieldListerServiceTest {
     @Before
     public void setUp() {
         statusReportingService = new StatusReportingServiceStub();
-        service = new ServiceFactory(new Program(), statusReportingService).fieldLister();
+        service = new ServiceFactoryImpl(new Program(), statusReportingService, null).fieldLister();
     }
 
     @Test

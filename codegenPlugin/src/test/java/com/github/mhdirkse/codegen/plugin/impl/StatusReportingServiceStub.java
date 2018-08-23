@@ -21,6 +21,6 @@ class StatusReportingServiceStub implements StatusReportingService {
 
     @Override
     public void report(final Status status, final Throwable e) {
-        throw new IllegalArgumentException("Method not supported");
+        statusses.add(status);
     }
 }
