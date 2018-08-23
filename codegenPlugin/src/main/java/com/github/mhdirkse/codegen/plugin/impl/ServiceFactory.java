@@ -16,9 +16,17 @@ class ServiceFactory {
         return reporter;
     }
 
+    AccessModifierCheckService accessModifierChecker(final AccessModifierCheckService.Callback callback) {
+        return new AccessModifierCheckService(this, callback);
+    }
+
     ServiceFactory(final Runnable program, final Logger logger) {
+        this(program, new StatusReportingServiceImpl(logger));
+    }
+
+    ServiceFactory(final Runnable program, final StatusReportingService reporter) {
         this.program = program;
-        fieldLister = new FieldListerService(this);
-        reporter = new StatusReportingServiceImpl(logger);
+        this.reporter = reporter;
+        fieldLister = new FieldListerService(this);        
     }
 }
