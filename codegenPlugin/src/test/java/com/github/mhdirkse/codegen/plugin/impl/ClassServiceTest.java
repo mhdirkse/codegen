@@ -4,9 +4,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.easymock.EasyMockRunner;
@@ -59,15 +57,13 @@ public class ClassServiceTest {
 
     @Test
     public void testGetHierarchyGivesChildrenAndParent() {
-        Set<Class<? extends Parent>> actual = instance.getHierarchy(Parent.class);
+        ClassModelList actual = instance.getHierarchy(Parent.class);
         Assert.assertEquals(3, actual.size());
         Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems(
                 "Parent", "Child", "Child2"));
     }
 
-    private List<String> getSimpleNames(Collection<Class<? extends Parent>> classes) {
-        ClassModelList classModels = new ClassModelList(
-                classes.stream().map(ClassModel::new).collect(Collectors.toList()));
+    private List<String> getSimpleNames(List<ClassModel> classModels) {
         return classModels.stream()
                 .map(ClassModel::getSimpleName)
                 .map(s -> s.split("\\$")[1])

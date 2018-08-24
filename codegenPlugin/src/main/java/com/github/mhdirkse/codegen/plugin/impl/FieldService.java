@@ -18,27 +18,32 @@ class FieldService {
         this.sf = sf;
     }
 
-    void checkNotFinal(final Field field, final Callback callback) {
+    boolean checkNotFinal(final Field field, final Callback callback) {
         boolean isFinal = Modifier.isFinal(field.getModifiers());
         if(isFinal) {
             Status status = callback.getStatusAccessModifierError("final");
             sf.reporter().report(status);
         }
+        return !isFinal;
     }
 
-    void checkNotStatic(final Field field, final Callback callback) {
+    boolean checkNotStatic(final Field field, final Callback callback) {
         boolean isStatic = Modifier.isStatic(field.getModifiers());
         if(isStatic) {
             Status status = callback.getStatusAccessModifierError("static");
             sf.reporter().report(status);
         }
+        return !isStatic;
     }
 
-    <T> void checkType(final Field field, final Class<T> expectedType, final Callback callback) {
+    <T> boolean checkType(final Field field, final Class<T> expectedType, final Callback callback) {
         Class<?> actualType = field.getType();
         if(!actualType.equals(expectedType)) {
             Status status = callback.getStatusTypeMismatch(actualType);
             sf.reporter().report(status);
+            return false;
+        } else {
+            return true;
         }
     }
 

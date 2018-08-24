@@ -2,8 +2,12 @@ package com.github.mhdirkse.codegen.plugin.impl;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
+
+import com.github.mhdirkse.codegen.compiletime.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 
 abstract class ClassService {
     static interface Callback {
@@ -27,11 +31,15 @@ abstract class ClassService {
         }
     }
 
-    final <R> Set<Class<? extends R>> getHierarchy(final Class<R> root) {
+    final <R> ClassModelList getHierarchy(final Class<R> root) {
         Reflections r = new Reflections(root.getPackage().getName());
         Set<Class<? extends R>> subClasses = r.getSubTypesOf(root);
         subClasses.add(root);
-        return subClasses;
+        ClassModelList result = new ClassModelList();
+        result.addAll(subClasses.stream()
+                .map(ClassModel::new)
+                .collect(Collectors.toList()));
+        return result;
     }
 
     abstract Class<?> doLoadClass(String fullName) throws ClassNotFoundException;

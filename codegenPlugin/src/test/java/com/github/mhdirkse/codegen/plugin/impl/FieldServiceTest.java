@@ -44,7 +44,7 @@ public class FieldServiceTest {
     @Test
     public void whenFieldIsNotFinalThenCheckNotFinalSucceeds() throws NoSuchFieldException {
         replay(callback);
-        instance.checkNotFinal(TestInput.class.getField("staticField"), callback);
+        Assert.assertTrue(instance.checkNotFinal(TestInput.class.getField("staticField"), callback));
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -57,7 +57,7 @@ public class FieldServiceTest {
                         StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
                         Input.class, field, "final"));
         replay(callback);
-        instance.checkNotFinal(field, callback);
+        Assert.assertFalse(instance.checkNotFinal(field, callback));
         verify(callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Status actualStatus = statusReportingService.getStatusses().get(0);
@@ -71,7 +71,7 @@ public class FieldServiceTest {
     @Test
     public void whenFieldIsNotStaticThenCheckNotStaticSucceeds() throws NoSuchFieldException {
         replay(callback);
-        instance.checkNotStatic(TestInput.class.getField("finalField"), callback);
+        Assert.assertTrue(instance.checkNotStatic(TestInput.class.getField("finalField"), callback));
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -84,7 +84,7 @@ public class FieldServiceTest {
                         StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER,
                         Input.class, field, "static"));
         replay(callback);
-        instance.checkNotStatic(field, callback);
+        Assert.assertFalse(instance.checkNotStatic(field, callback));
         verify(callback);
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Status actualStatus = statusReportingService.getStatusses().get(0);
@@ -96,10 +96,10 @@ public class FieldServiceTest {
     }
 
     @Test
-    public void whenTypeMatchesThenCheckTypeDoesNothing() throws NoSuchFieldException {
+    public void whenTypeMatchesThenCheckTypeSucceeds() throws NoSuchFieldException {
         Field field = TestInput.class.getField("finalField");
         replay(callback);
-        instance.checkType(field, String.class, callback);
+        Assert.assertTrue(instance.checkType(field, String.class, callback));
         verify(callback);
         Assert.assertEquals(0, statusReportingService.getStatusses().size());
     }
@@ -111,7 +111,7 @@ public class FieldServiceTest {
                 Status.forFieldError(StatusCode.FIELD_TYPE_MISMATCH,
                         Override.class, field, "dummy", "dummy"));
         replay(callback);
-        instance.checkType(field, Integer.class, callback);
+        Assert.assertFalse(instance.checkType(field, Integer.class, callback));
         Assert.assertEquals(1, statusReportingService.getStatusses().size());
         Assert.assertEquals(
                 StatusCode.FIELD_TYPE_MISMATCH,

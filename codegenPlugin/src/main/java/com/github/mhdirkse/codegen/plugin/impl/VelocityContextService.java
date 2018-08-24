@@ -37,11 +37,11 @@ class VelocityContextService {
         return Optional.ofNullable(targetUnwrapped);
     }
 
-    <T extends Object> Optional<ClassModel> checkTargetIsClassModel(final T target, final Callback callback) {
+    Optional<ClassModel> checkTargetIsClassModel(final Object target, final Callback callback) {
         if(!(target instanceof ClassModel)) {
             Status status = callback.getStatusTargetTypeMismatch();
             sf.reporter().report(status);
-            return Optional.empty();
+            return Optional.<ClassModel>empty();
         }
         else {
             return Optional.of((ClassModel) target);
