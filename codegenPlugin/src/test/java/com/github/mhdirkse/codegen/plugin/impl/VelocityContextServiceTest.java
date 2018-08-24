@@ -4,6 +4,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.util.Optional;
+
 import org.apache.velocity.VelocityContext;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -34,8 +36,9 @@ public class VelocityContextServiceTest {
     public void testWhenVelocityContextFilledThenNoError() {
         VelocityContext vc = new VelocityContext();
         replay(callback);
-        instance.checkNotEmpty(vc, callback);
+        Optional<VelocityContext> result = instance.checkNotEmpty(vc, callback);
         verify(callback);
+        Assert.assertTrue(result.isPresent());
     }
 
     @Test
@@ -43,9 +46,10 @@ public class VelocityContextServiceTest {
         expect(callback.getStatusVelocityContextEmpty()).andReturn(
                 Status.general(StatusCode.TEST_STATUS_ZERO_ARGS, LogPriority.ERROR));
         replay(callback);
-        instance.checkNotEmpty(null, callback);
+        Optional<VelocityContext> result = instance.checkNotEmpty(null, callback);
         verify(callback);
         Assert.assertEquals(1, reporter.getStatusses().size());
+        Assert.assertFalse(result.isPresent());
     }
 
     @Test
@@ -53,8 +57,11 @@ public class VelocityContextServiceTest {
         VelocityContext vc = new VelocityContext();
         vc.put("target", "Some value");
         replay(callback);
-        instance.checkHasTarget(vc, callback);
+        Optional<Object> result = instance.checkHasTarget(vc, callback);
         verify(callback);
+        Object resultUnwrapped = result.orElseThrow(
+                () -> new IllegalArgumentException("Expected that target was filled."));
+        Assert.assertEquals("Some value", resultUnwrapped);
     }
 
     @Test
@@ -63,29 +70,30 @@ public class VelocityContextServiceTest {
         expect(callback.getStatusVelocityContextLacksTarget()).andReturn(
                 Status.general(StatusCode.TEST_STATUS_ZERO_ARGS, LogPriority.ERROR));
         replay(callback);
-        instance.checkHasTarget(vc, callback);
+        Optional<Object> result = instance.checkHasTarget(vc, callback);
         verify(callback);
         Assert.assertEquals(1, reporter.getStatusses().size());
+        Assert.assertFalse(result.isPresent());
     }
 
     @Test
     public void testWhenTargetHasClassModelThenNoError() {
-        VelocityContext vc = new VelocityContext();
-        vc.put("target", new ClassModel());
+        Object target = new ClassModel();
         replay(callback);
-        instance.checkTargetIsClassModel(vc, callback);
+        Optional<ClassModel> result = instance.checkTargetIsClassModel(target, callback);
         verify(callback);
+        Assert.assertTrue(result.isPresent());
     }
 
     @Test
     public void testWhenTargetisNotClassModelThenError() {
-        VelocityContext vc = new VelocityContext();
-        vc.put("target", "Some value");
+        Object target = "Some value";
         expect(callback.getStatusTargetTypeMismatch()).andReturn(
                 Status.general(StatusCode.TEST_STATUS_ZERO_ARGS, LogPriority.ERROR));
         replay(callback);
-        instance.checkTargetIsClassModel(vc, callback);
+        Optional<ClassModel> result = instance.checkTargetIsClassModel(target, callback);
         verify(callback);
         Assert.assertEquals(1, reporter.getStatusses().size());
+        Assert.assertFalse(result.isPresent());
     }
 }
