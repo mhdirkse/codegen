@@ -9,6 +9,10 @@ import java.util.Set;
 import org.reflections.ReflectionUtils;
 
 class FieldListerService {
+    interface Callback {
+        Status getStatusAccessModifierError(final Field field, final String accessModifier);
+    }
+
     private final ServiceFactory sf;
 
     FieldListerService(final ServiceFactory sf) {
@@ -18,7 +22,7 @@ class FieldListerService {
     @SuppressWarnings("unchecked")
     <T extends Annotation> Set<Field> getFields(
             final Class<T> annotationClass,
-            final FieldListerServiceCallback callback) {
+            final Callback callback) {
         Set<Field> allFields = ReflectionUtils.getAllFields(
                 sf.getProgram().getClass(),
                 ReflectionUtils.withAnnotation(annotationClass));

@@ -23,7 +23,7 @@ public class FieldListerServiceTest {
     private StatusReportingServiceStub statusReportingService;
 
     @Mock
-    private FieldListerServiceCallback callback;
+    private FieldListerService.Callback callback;
 
     private class Program implements Runnable {
         @Input("some.package.SomeClass")
