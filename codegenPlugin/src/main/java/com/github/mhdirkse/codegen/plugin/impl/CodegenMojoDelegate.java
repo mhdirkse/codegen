@@ -1,12 +1,26 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_GET_ERROR;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_GET_ERROR_AFTER_PROGRAM_RUN;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_MISSING_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_REQUIRED_CLASS_NOT_FOUND;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_SET_ERROR;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_TYPE_MISMATCH;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_LACKS_TARGET;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_TARGET_NOT_CLASS_MODEL;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKNOWN_FIELD_ERROR;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKONWN_FIELD_ERROR_AFTER_PROGRAM_RUN;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.velocity.VelocityContext;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
@@ -17,9 +31,7 @@ import com.github.mhdirkse.codegen.compiletime.TypeHierarchy;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
-
-import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.*;
+import lombok.experimental.Accessors;;
 
 public class CodegenMojoDelegate
 implements Runnable
@@ -93,6 +105,7 @@ implements Runnable
         String className = field.getAnnotation(Input.class).value();
         return sf.classService()
                 .loadClass(className, getInputClassCallback(result.field, className))
+                .map(ClassService.ClassAdapter::getAdaptee)
                 .map(ClassModel::new)
                 .map(result::setClassModel);
     }
@@ -123,10 +136,24 @@ implements Runnable
     private Optional<HierarchyDefinition> getHierarchyDefinition(final Field field) {
         HierarchyDefinition result = new HierarchyDefinition();
         result.field = field;
-        String parentClass = field.getAnnotation(TypeHierarchy.class).value();
+        TypeHierarchy annotation = field.getAnnotation(TypeHierarchy.class);
+        String parentClass = annotation.value();
+        Class<?> interfaceToInherit = getInterfaceToInherit(field, annotation.filterIsA());
         return sf.classService().loadClass(parentClass, getHierarchyClassCallback(field, parentClass))
-            .map(sf.classService()::getHierarchy)
+            .map(c -> sf.classService().getHierarchy(c.getAdaptee(), interfaceToInherit))
             .map(result::setResult);
+    }
+
+    Class<?> getInterfaceToInherit(final Field field, final String optionalName) {
+        return Optional.ofNullable(optionalName)
+                .filter(not(StringUtils::isBlank))
+                .flatMap(n -> sf.classService().loadClass(
+                    n, getHierarchyFilterCallback(field, n)))
+                .map(ClassService.ClassAdapter::getAdaptee).orElse(null);
+    }
+
+    static <T> Predicate<T> not(Predicate<T> t) {
+        return t.negate();
     }
 
     void writeOutputFiles() {
@@ -315,6 +342,16 @@ implements Runnable
                         TypeHierarchy.class,
                         field,
                         parentClass);
+            }
+        };
+    }
+
+    private ClassService.Callback getHierarchyFilterCallback(final Field field, final String filterClass) {
+        return new ClassService.Callback() {
+            @Override
+            public Status getStatusClassNotFound() {
+                // TODO Auto-generated method stub
+                return null;
             }
         };
     }

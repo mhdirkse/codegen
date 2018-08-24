@@ -1,5 +1,6 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,9 +10,18 @@ import org.reflections.Reflections;
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
 import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 
+import lombok.Getter;
+import lombok.Setter;
+
 abstract class ClassService {
     static interface Callback {
         Status getStatusClassNotFound();
+    }
+
+    static class ClassAdapter {
+        @Getter
+        @Setter
+        Class<?> adaptee;
     }
 
     private ServiceFactory sf;
@@ -20,9 +30,11 @@ abstract class ClassService {
         this.sf = sf;
     }
 
-    Optional<Class<?>> loadClass(final String fullName, final Callback callback) {
+    Optional<ClassService.ClassAdapter> loadClass(final String fullName, final Callback callback) {
         try {
-            return Optional.of(doLoadClass(fullName));
+            ClassService.ClassAdapter result = new ClassService.ClassAdapter();
+            result.setAdaptee(doLoadClass(fullName));
+            return Optional.of(result);
         }
         catch(Exception e) {
             Status status = callback.getStatusClassNotFound();
@@ -31,15 +43,25 @@ abstract class ClassService {
         }
     }
 
-    final <R> ClassModelList getHierarchy(final Class<R> root) {
+    final <R> ClassModelList getHierarchy(final Class<R> root, final Class<?> optionalFilterClass) {
         Reflections r = new Reflections(root.getPackage().getName());
         Set<Class<? extends R>> subClasses = r.getSubTypesOf(root);
         subClasses.add(root);
+        subClasses = filterInterface(optionalFilterClass, subClasses);
         ClassModelList result = new ClassModelList();
         result.addAll(subClasses.stream()
                 .map(ClassModel::new)
                 .collect(Collectors.toList()));
         return result;
+    }
+
+    private <R> Set<Class<? extends R>> filterInterface(final Class<?> interfaceToInherit,
+            Set<Class<? extends R>> subClasses) {
+        if (Objects.nonNull(interfaceToInherit)) {
+            subClasses = subClasses.stream()
+                    .filter((s) -> interfaceToInherit.isAssignableFrom(s)).collect(Collectors.toSet());
+        }
+        return subClasses;
     }
 
     abstract Class<?> doLoadClass(String fullName) throws ClassNotFoundException;

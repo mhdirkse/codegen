@@ -5,6 +5,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.easymock.EasyMockRunner;
@@ -37,9 +38,9 @@ public class ClassServiceTest {
     @Test
     public void testWhenClassAvailableThenClassLoaded() {
         replay(callback);
-        Class<?> actual = instance.loadClass(PARENT_CLASS_NAME, callback).get();
+        Optional<ClassService.ClassAdapter> actual = instance.loadClass(PARENT_CLASS_NAME, callback);
         verify(callback);
-        Assert.assertEquals(Parent.class, actual);
+        Assert.assertEquals(Parent.class, actual.get().getAdaptee());
         Assert.assertEquals(0, reporter.getStatusses().size());
     }
 
@@ -50,17 +51,25 @@ public class ClassServiceTest {
                         StatusCode.TEST_CLASS_DOES_NOT_EXIST,
                         LogPriority.ERROR, "Parent"));
         replay(callback);
-        instance.loadClass("doesNotExist", callback);
+        Optional<ClassService.ClassAdapter> actual = instance.loadClass("doesNotExist", callback);
         verify(callback);
         Assert.assertEquals(1, reporter.getStatusses().size());
+        Assert.assertFalse(actual.isPresent());
     }
 
     @Test
     public void testGetHierarchyGivesChildrenAndParent() {
-        ClassModelList actual = instance.getHierarchy(Parent.class);
+        ClassModelList actual = instance.getHierarchy(Parent.class, null);
         Assert.assertEquals(3, actual.size());
         Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems(
                 "Parent", "Child", "Child2"));
+    }
+
+    @Test
+    public void testGetHierarchyCanFilterOnImplementedInterface() {
+        ClassModelList actual = instance.getHierarchy(Parent.class, TestInterface.class);
+        Assert.assertEquals(1, actual.size());
+        Assert.assertThat(getSimpleNames(actual), CoreMatchers.hasItems("Child2"));
     }
 
     private List<String> getSimpleNames(List<ClassModel> classModels) {
@@ -83,5 +92,4 @@ public class ClassServiceTest {
     @SuppressWarnings("unused")
     private class Child2 extends Parent implements TestInterface {
     }
-
 }
