@@ -22,6 +22,10 @@ public abstract class ClassService {
         @Getter
         @Setter
         Class<?> adaptee;
+
+        String getName() {
+            return adaptee.getName();
+        }
     }
 
     private ServiceFactory sf;
