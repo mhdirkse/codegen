@@ -8,6 +8,6 @@
   <parent>
     <groupId>com.github.mhdirkse</groupId>
     <artifactId>codegen</artifactId>
-    <version>2.3-SNAPSHOT</version>
+    <version>2.3</version>
   </parent>
 </project>
