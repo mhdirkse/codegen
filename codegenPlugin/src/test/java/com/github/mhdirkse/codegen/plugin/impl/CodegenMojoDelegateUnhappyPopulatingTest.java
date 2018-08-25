@@ -7,9 +7,6 @@ import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_REQUIRED_
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
@@ -27,7 +24,7 @@ import com.github.mhdirkse.codegen.compiletime.Output;
 import com.github.mhdirkse.codegen.compiletime.TypeHierarchy;
 
 @RunWith(Parameterized.class)
-public class CodegenMojoDelegateUnhappyPopulatingTest {
+public class CodegenMojoDelegateUnhappyPopulatingTest extends CodegenMojoDelegateUnhappyTestBase {
     private static final String INPUT_CLASS_NAME = "com.github.mhdirkse.codegen.plugin.impl.CodegenMojoDelegateUnhappyPopulatingTest$TestInput";
 
     @SuppressWarnings("unused")
@@ -70,51 +67,17 @@ public class CodegenMojoDelegateUnhappyPopulatingTest {
         });
     }
 
-    @Parameter(0)
-    public String fieldName;
-
-    @Parameter(1)
-    public StatusCode expectedStatusCode;
-
     @Parameter(2)
     public String accessModifierOrTargetType;
 
-    private static class StatusSummary {
-        StatusCode statusCode;
-        String accessModifierOrTargetType;
-
-        StatusSummary(final Status status) {
-            this.statusCode = status.getStatusCode();
-            String[] args = status.getArguments();
-            if(args.length >= 3) {
-                this.accessModifierOrTargetType = args[2];
-            }
-        }
-    }
-
-    Map<String, List<StatusSummary>> actualStatusses;
-
     @Before
     public void setUp() {
-        StatusReportingServiceStub reporter = new StatusReportingServiceStub();
-        TestProgram program = new TestProgram();
-        ServiceFactory sf = new ServiceFactoryImpl(program, reporter, this.getClass().getClassLoader());
-        CodegenMojoDelegate instance = new CodegenMojoDelegate(program, sf);
+        super.setUp(new TestProgram());
+    }
+
+    @Override
+    void runCodegenMojoDelegate(final CodegenMojoDelegate instance) {
         instance.populate();
-        actualStatusses = reporter.getStatusses().stream()
-                .collect(Collectors.groupingBy(
-                        status -> status.getArguments()[1],
-                        Collectors.mapping(StatusSummary::new, Collectors.toList())));
-    }
-
-    @Test
-    public void onlyExpectedErrorSeen() {
-        Assert.assertEquals(1, actualStatusses.get(fieldName).size());
-    }
-
-    @Test
-    public void statusCodeMatches() {
-        Assert.assertEquals(expectedStatusCode, actualStatusses.get(fieldName).get(0).statusCode);
     }
 
     @Test
