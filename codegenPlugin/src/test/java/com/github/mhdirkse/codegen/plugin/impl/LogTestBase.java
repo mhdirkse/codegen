@@ -18,7 +18,7 @@ abstract class LogTestBase implements Logger {
         }
     }
 
-    public void setUp() {
+    public void setUp() throws Exception {
         debugs = new ArrayList<>();
         infos = new ArrayList<>();
         errors = new ArrayList<>();

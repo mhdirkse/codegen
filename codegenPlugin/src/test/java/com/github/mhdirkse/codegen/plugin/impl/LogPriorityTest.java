@@ -15,7 +15,7 @@ public class LogPriorityTest extends LogTestBase {
 
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
     }
 
