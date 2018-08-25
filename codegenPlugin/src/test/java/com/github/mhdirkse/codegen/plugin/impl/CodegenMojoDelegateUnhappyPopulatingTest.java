@@ -1,6 +1,9 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
-import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.*;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_MISSING_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_TYPE_MISMATCH;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_REQUIRED_CLASS_NOT_FOUND;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,10 +21,10 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 import com.github.mhdirkse.codegen.compiletime.ClassModel;
+import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 import com.github.mhdirkse.codegen.compiletime.Input;
-
-import org.apache.commons.lang3.StringUtils;
-import org.junit.Assert;
+import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.compiletime.TypeHierarchy;
 
 @RunWith(Parameterized.class)
 public class CodegenMojoDelegateUnhappyPopulatingTest {
@@ -42,6 +47,12 @@ public class CodegenMojoDelegateUnhappyPopulatingTest {
         @Input(INPUT_CLASS_NAME)
         public String inputNotClassModel;
 
+        @Output("someTemplate")
+        public String outputNotVelocityContext;
+
+        @TypeHierarchy("xyz")
+        public ClassModelList typeHierarchParentClassDoesNotExist;
+
         @Override
         public void run() {
         }
@@ -53,7 +64,9 @@ public class CodegenMojoDelegateUnhappyPopulatingTest {
             {"inputNotPublic", FIELD_MISSING_ACCESS_MODIFIER, "public"},
             {"inputIsStatic", FIELD_UNWANTED_ACCESS_MODIFIER, "static"},
             {"inputIsFinal", FIELD_UNWANTED_ACCESS_MODIFIER, "final"},
-            {"inputNotClassModel", FIELD_TYPE_MISMATCH, "com.github.mhdirkse.codegen.compiletime.ClassModel"}
+            {"inputNotClassModel", FIELD_TYPE_MISMATCH, "com.github.mhdirkse.codegen.compiletime.ClassModel"},
+            {"outputNotVelocityContext", FIELD_TYPE_MISMATCH, "org.apache.velocity.VelocityContext"},
+            {"typeHierarchParentClassDoesNotExist", FIELD_REQUIRED_CLASS_NOT_FOUND, "xyz"}
         });
     }
 
