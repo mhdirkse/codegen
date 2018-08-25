@@ -103,7 +103,7 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         CodegenMojoDelegate runner = new CodegenMojoDelegate(instantiatedProgram, serviceFactory);
         runner.run();
         if(runner.hasErrors()) {
-            throw new MojoExecutionException("CodegenPlugin did not run successfully. See Maven console output for details");
+            throw new MojoExecutionException("CodegenPlugin did not run successfully. See Maven console output for details.");
         }
     }
 
