@@ -58,7 +58,7 @@ implements Runnable
         }
     }
 
-    public void populate() {
+    void populate() {
         populateInputs();
         populateOutputs();
         populateTypeHierarchies();
@@ -72,7 +72,7 @@ implements Runnable
         ClassModel classModel;
     }
 
-    public void populateInputs() {
+    private void populateInputs() {
         getFields(Input.class, ClassModel.class).stream()
             .map(this::getInputDefinition)
             .filter(Optional::isPresent)
@@ -114,7 +114,7 @@ implements Runnable
                 .map(result::setClassModel);
     }
 
-    void populateOutputs() {
+    private void populateOutputs() {
         getFields(Output.class, VelocityContext.class)
             .forEach(f ->
                 sf.fieldService().setField(f, new VelocityContext(), getOutputCallback(f)));
@@ -128,7 +128,7 @@ implements Runnable
         ClassModelList result;
     }
 
-    void populateTypeHierarchies() {
+    private void populateTypeHierarchies() {
         getFields(TypeHierarchy.class, ClassModelList.class).stream()
             .map(this::getHierarchyDefinition)
             .filter(Optional::isPresent)
@@ -148,7 +148,7 @@ implements Runnable
             .map(result::setResult);
     }
 
-    Class<?> getInterfaceToInherit(final Field field, final String optionalName) {
+    private Class<?> getInterfaceToInherit(final Field field, final String optionalName) {
         return Optional.ofNullable(optionalName)
                 .filter(not(StringUtils::isBlank))
                 .flatMap(n -> sf.classService().loadClass(
@@ -168,7 +168,7 @@ implements Runnable
                 .forEach(sf.fileWriteService()::write);
     }
 
-    Optional<FileContentsDefinition> getFileContentsDefinition(final Field field) {
+    private Optional<FileContentsDefinition> getFileContentsDefinition(final Field field) {
         FileContentsDefinition result = new FileContentsDefinition();
         result.setTemplateFileName(field.getAnnotation(Output.class).value());
         Optional<FileContentsDefinition> resultWhenFilled = fillFcdWithVelocityContext(result, field);
@@ -197,7 +197,7 @@ implements Runnable
                     result -> result.setOutputClassName(className)));
     }
 
-    FieldListerService.Callback getFieldListerServiceCallback(
+    private FieldListerService.Callback getFieldListerServiceCallback(
             final Class<? extends Annotation> annotation) {
         return new FieldListerService.Callback() {
             @Override
@@ -213,7 +213,7 @@ implements Runnable
         };
     }
 
-    FieldService.Callback getCheckFieldCallback(
+    private FieldService.Callback getCheckFieldCallback(
             final Class<? extends Annotation> annotation,
             final Field field,
             Class<?> targetType) {
