@@ -3,10 +3,12 @@ package com.github.mhdirkse.codegen.plugin;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -129,11 +131,12 @@ public class CodegenMojo extends AbstractMojo implements Logger {
     private FileWriteService getFileWriteService() {
         return new FileWriteService() {
             @Override
-            public void write(final FileContentsDefinition def) {
+            public void write(final FileContentsDefinition def, final Consumer<Exception> errorCallback) {
                 writeOutputFile(
                         def.getVelocityContext(),
                         def.getTemplateFileName(),
-                        def.getOutputClassName());
+                        def.getOutputClassName(),
+                        errorCallback);
             }
         };
     }
@@ -189,36 +192,32 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    // TODO: Repair error handling.
-    private void writeOutputFile(VelocityContext velocityContext, String templateFileName, String outputClass) {
-        Writer writer = null;
+    private void writeOutputFile(
+            final VelocityContext velocityContext,
+            final String templateFileName,
+            final String outputClass,
+            final Consumer<Exception> errorCallback) {
         File fileToWrite = classToPathOfJavaFile(outputDirectory, outputClass);
-        try {
-            writer = writeOutputFileUnchecked(velocityContext, templateFileName, outputClass, fileToWrite);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Could not write file " + fileToWrite.toString(), e);
-        } finally {
-            checkedClose(writer);
+        info(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
+                fileToWrite.toString()));
+        try(Writer writer = getWriter(fileToWrite)) {
+            writeOutputFileUnchecked(velocityContext, templateFileName, writer);
+        } catch (Exception e) {
+            errorCallback.accept(e);
         }
     }
 
-    private Writer writeOutputFileUnchecked(VelocityContext velocityContext, String templateFileName,
-            String outputClass, File fileToWrite) throws IOException {
-        info(String.format("Applying template %s to create class %s in file %s", templateFileName, outputClass,
-                fileToWrite.toString()));
+    private Writer getWriter(File fileToWrite)
+            throws UnsupportedEncodingException, IOException {
         fileToWrite.getParentFile().mkdirs();
-        Template template = velocityComponent.getEngine().getTemplate(templateFileName);
         Writer writer = new OutputStreamWriter(buildContext.newFileOutputStream(fileToWrite), sourceEncoding);
-        template.merge(velocityContext, writer);
         return writer;
     }
 
-    private void checkedClose(Writer writer) {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Could not close file", e);
-        }
+    private void writeOutputFileUnchecked(VelocityContext velocityContext, String templateFileName,
+            final Writer writer) throws IOException {
+        Template template = velocityComponent.getEngine().getTemplate(templateFileName);
+        template.merge(velocityContext, writer);
     }
 
     static File classToPathOfJavaFile(File base, String className) {

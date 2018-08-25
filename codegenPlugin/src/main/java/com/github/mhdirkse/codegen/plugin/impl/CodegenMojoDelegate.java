@@ -1,5 +1,6 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FILE_WRITE_IO_ERROR;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_GET_ERROR;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_GET_ERROR_AFTER_PROGRAM_RUN;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_MISSING_ACCESS_MODIFIER;
@@ -7,16 +8,17 @@ import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_REQUIRED_
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_SET_ERROR;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_TYPE_MISMATCH;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_UNWANTED_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_LACKS_TARGET;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_TARGET_NOT_CLASS_MODEL;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKNOWN_FIELD_ERROR;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKONWN_FIELD_ERROR_AFTER_PROGRAM_RUN;
-import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -166,7 +168,7 @@ implements Runnable
                 .map(this::getFileContentsDefinition)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .forEach(sf.fileWriteService()::write);
+                .forEach(fcd -> sf.fileWriteService().write(fcd, getFileWriteErrorCallback(fcd)));
     }
 
     private Optional<FileContentsDefinition> getFileContentsDefinition(final Field field) {
@@ -460,6 +462,18 @@ implements Runnable
                         FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME,
                         Output.class,
                         field);
+            }
+        };
+    }
+
+    Consumer<Exception> getFileWriteErrorCallback(final FileContentsDefinition fcd) {
+        return new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                Status status = Status.general(
+                        FILE_WRITE_IO_ERROR,
+                        LogPriority.ERROR);
+                sf.reporter().report(status, e);
             }
         };
     }

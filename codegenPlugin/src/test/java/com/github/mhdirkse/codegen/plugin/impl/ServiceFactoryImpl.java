@@ -1,5 +1,7 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
+import java.util.function.Consumer;
+
 import lombok.Setter;
 
 class ServiceFactoryImpl extends ServiceFactory {
@@ -23,7 +25,7 @@ class ServiceFactoryImpl extends ServiceFactory {
     protected FileWriteService fileWriteService() {
         return new FileWriteService() {
             @Override
-            public void write(FileContentsDefinition fcd) {
+            public void write(final FileContentsDefinition fcd, final Consumer<Exception> callback) {
             }
         };
     }
