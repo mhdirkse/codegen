@@ -1,6 +1,6 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
-import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_MISSING_ACCESS_MODIFIER;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,12 +25,22 @@ import org.junit.Assert;
 public class CodegenMojoDelegateUnhappyPopulatingTest {
     private static final String INPUT_CLASS_NAME = "com.github.mhdirkse.codegen.plugin.impl.CodegenMojoDelegateUnhappyPopulatingTest$TestInput";
 
+    @SuppressWarnings("unused")
     private static class TestInput {
     }
 
     private static class TestProgram implements Runnable {
         @Input(INPUT_CLASS_NAME)
         ClassModel inputNotPublic;
+
+        @Input(INPUT_CLASS_NAME)
+        public static ClassModel inputIsStatic;
+
+        @Input(INPUT_CLASS_NAME)
+        public final ClassModel inputIsFinal = new ClassModel();
+        
+        @Input(INPUT_CLASS_NAME)
+        public String inputNotClassModel;
 
         @Override
         public void run() {
@@ -40,7 +50,10 @@ public class CodegenMojoDelegateUnhappyPopulatingTest {
     @Parameters(name = "Field {0}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
-            {"inputNotPublic", FIELD_MISSING_ACCESS_MODIFIER, "public"}
+            {"inputNotPublic", FIELD_MISSING_ACCESS_MODIFIER, "public"},
+            {"inputIsStatic", FIELD_UNWANTED_ACCESS_MODIFIER, "static"},
+            {"inputIsFinal", FIELD_UNWANTED_ACCESS_MODIFIER, "final"},
+            {"inputNotClassModel", FIELD_TYPE_MISMATCH, "com.github.mhdirkse.codegen.compiletime.ClassModel"}
         });
     }
 
@@ -53,15 +66,13 @@ public class CodegenMojoDelegateUnhappyPopulatingTest {
     @Parameter(2)
     public String accessModifierOrTargetType;
 
-    private class StatusSummary {
+    private static class StatusSummary {
         StatusCode statusCode;
-        String fieldName;
         String accessModifierOrTargetType;
 
         StatusSummary(final Status status) {
             this.statusCode = status.getStatusCode();
             String[] args = status.getArguments();
-            this.fieldName = args[1];
             if(args.length >= 3) {
                 this.accessModifierOrTargetType = args[2];
             }
