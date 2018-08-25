@@ -2,7 +2,7 @@ package com.github.mhdirkse.codegen.plugin.impl;
 
 import lombok.Getter;
 
-abstract class ServiceFactory {
+public abstract class ServiceFactory {
     @Getter
     private Runnable program;
 
@@ -16,7 +16,7 @@ abstract class ServiceFactory {
         return reporter;
     }
 
-    abstract ClassService classService();
+    protected abstract ClassService classService();
 
     private FieldService fieldService;
     FieldService fieldService() {
@@ -28,9 +28,9 @@ abstract class ServiceFactory {
         return velocityContextService;
     }
 
-    abstract FileWriteService fileWriteService();
+    protected abstract FileWriteService fileWriteService();
 
-    ServiceFactory(final Runnable program, final Logger logger) {
+    protected ServiceFactory(final Runnable program, final Logger logger) {
         this(program, new StatusReportingServiceImpl(logger));
     }
 

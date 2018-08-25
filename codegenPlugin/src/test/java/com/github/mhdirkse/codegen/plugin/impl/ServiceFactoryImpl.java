@@ -15,15 +15,15 @@ class ServiceFactoryImpl extends ServiceFactory {
     }
 
     @Override
-    ClassService classService() {
+    protected ClassService classService() {
         return classService;
     }
 
     @Override
-    FileWriteService fileWriteService() {
+    protected FileWriteService fileWriteService() {
         return new FileWriteService() {
             @Override
-            void write(FileContentsDefinition fcd) {
+            public void write(FileContentsDefinition fcd) {
             }
         };
     }
@@ -37,7 +37,7 @@ class ServiceFactoryImpl extends ServiceFactory {
         }
 
         @Override
-        Class<?> doLoadClass(String fullName) throws ClassNotFoundException {
+        protected Class<?> doLoadClass(String fullName) throws ClassNotFoundException {
             return cl.loadClass(fullName);
         }
     }

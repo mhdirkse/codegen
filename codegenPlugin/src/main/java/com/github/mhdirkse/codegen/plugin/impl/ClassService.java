@@ -13,7 +13,7 @@ import com.github.mhdirkse.codegen.compiletime.ClassModelList;
 import lombok.Getter;
 import lombok.Setter;
 
-abstract class ClassService {
+public abstract class ClassService {
     static interface Callback {
         Status getStatusClassNotFound();
     }
@@ -26,7 +26,7 @@ abstract class ClassService {
 
     private ServiceFactory sf;
 
-    ClassService(final ServiceFactory sf) {
+    protected ClassService(final ServiceFactory sf) {
         this.sf = sf;
     }
 
@@ -64,5 +64,5 @@ abstract class ClassService {
         return subClasses;
     }
 
-    abstract Class<?> doLoadClass(String fullName) throws ClassNotFoundException;
+    protected abstract Class<?> doLoadClass(String fullName) throws ClassNotFoundException;
 }

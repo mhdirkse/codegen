@@ -45,6 +45,10 @@ implements Runnable
         this.sf = sf;
     }
 
+    public boolean hasErrors() {
+        return sf.reporter().hasErrors();
+    }
+    
     @Override
     public void run() {
         populate();

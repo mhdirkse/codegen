@@ -6,12 +6,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -27,8 +23,12 @@ import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.velocity.VelocityComponent;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
-import com.github.mhdirkse.codegen.compiletime.ClassModel;
-import com.github.mhdirkse.codegen.compiletime.Output;
+import com.github.mhdirkse.codegen.plugin.impl.ClassService;
+import com.github.mhdirkse.codegen.plugin.impl.CodegenMojoDelegate;
+import com.github.mhdirkse.codegen.plugin.impl.FileContentsDefinition;
+import com.github.mhdirkse.codegen.plugin.impl.FileWriteService;
+import com.github.mhdirkse.codegen.plugin.impl.Logger;
+import com.github.mhdirkse.codegen.plugin.impl.ServiceFactory;
 
 /**
  * Goal which generates .java files from POJO description files.
@@ -55,6 +55,12 @@ public class CodegenMojo extends AbstractMojo implements Logger {
 
     @Parameter
     public String program;
+
+    private Runnable instantiatedProgram;
+
+    private ClassRealm classRealm;
+
+    private ServiceFactory serviceFactory;
 
     @Override
     public void debug(final String msg) {
@@ -86,37 +92,59 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         getLog().error(msg, e);
     }
 
-    Testable testable = new TestableImpl();
-
     @Override
     public void execute() throws MojoExecutionException {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath().toString());
-        Runnable instantiatedProgram = instantiate(program, Runnable.class);
-        ClassLoaderAdapter cla = ClassLoaderAdapter.forRealm(Object.class, getClassRealm());
-        List<Optional<FieldManipulation>> outputManipulations = new FieldIterator.OutputPopulator(instantiatedProgram, this).run();
-        List<Optional<FieldManipulation>> rawManipulations = new ArrayList<>();
-        rawManipulations.addAll(new FieldIterator.InputPopulator(instantiatedProgram, this, cla).run());
-        rawManipulations.addAll(outputManipulations);
-        rawManipulations.addAll(new FieldIterator.HierarchyPopulator(instantiatedProgram, this, cla).run());
-        List<FieldManipulation> manipulations = rawManipulations.stream()
-                .filter(Optional::isPresent)
-                .map((om) -> om.get())
-                .collect(Collectors.toList());
-        boolean manipulationsOk = (manipulations.size() == rawManipulations.size());
-        if (!manipulationsOk) {
-            String msg = "Some field manipulations could not be created. Please see Maven console output.";
-            error(msg);
-            throw new MojoExecutionException(msg);
+        instantiatedProgram = instantiate(program, Runnable.class);
+        classRealm = getClassRealm();
+        serviceFactory = new ServiceFactoryImpl();
+        CodegenMojoDelegate runner = new CodegenMojoDelegate(instantiatedProgram, serviceFactory);
+        runner.run();
+        if(runner.hasErrors()) {
+            throw new MojoExecutionException("CodegenPlugin did not run successfully. See Maven console output for details");
         }
-        boolean populated = (runAllManipulations(manipulations));
-        if(!populated) {
-            String msg = "Could not populate the provided program. Please see Maven console output.";
-            error(msg);
-            throw new MojoExecutionException(msg);
-        } else {
-            instantiatedProgram.run();
-            createOutputFiles(outputManipulations);
+    }
+
+    private class ServiceFactoryImpl extends ServiceFactory {
+        private final ClassService classService;
+        private final FileWriteService fileWriteService;
+
+        ServiceFactoryImpl() {
+            super(instantiatedProgram, CodegenMojo.this);
+            classService = getClassService(this);
+            fileWriteService = getFileWriteService();
         }
+
+        @Override
+        protected ClassService classService() {
+            return classService;
+        }
+
+        @Override
+        protected FileWriteService fileWriteService() {
+            return fileWriteService;
+        }
+    }
+
+    private FileWriteService getFileWriteService() {
+        return new FileWriteService() {
+            @Override
+            public void write(final FileContentsDefinition def) {
+                writeOutputFile(
+                        def.getVelocityContext(),
+                        def.getTemplateFileName(),
+                        def.getOutputClassName());
+            }
+        };
+    }
+
+    private ClassService getClassService(final ServiceFactory sf) {
+        return new ClassService(sf) {
+            @Override
+            protected Class<?> doLoadClass(String fullName) throws ClassNotFoundException {
+                return classRealm.loadClass(fullName);
+            }
+        };
     }
 
     private <T> T instantiate(final String className, final Class<T> type) throws MojoExecutionException {
@@ -161,41 +189,14 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         }
     }
 
-    boolean runAllManipulations(final List<FieldManipulation> manipulations) {
-        return manipulations.stream()
-            .map(FieldManipulation::run)
-            .filter(CodegenMojo::failed)
-            .collect(Collectors.counting()) == 0;
-    }
-
-    static boolean failed(final boolean manipulationResult) {
-        return !manipulationResult;
-    }
-
-    private void createOutputFiles(
-            final List<Optional<FieldManipulation>> outputManipulations) throws MojoExecutionException {
-        for(Optional<FieldManipulation> fm : outputManipulations) {
-            createOutputFileUnchecked(fm.get());    
-        }
-    }
-
-    private void createOutputFileUnchecked(final FieldManipulation fm) throws MojoExecutionException {
-        Output annotation = fm.f.getAnnotation(Output.class);
-        String template = annotation.value();
-        VelocityContext velocityContext = (VelocityContext) fm.instantiatedObject;
-        ClassModel outputClassModel = testable.getTarget(velocityContext, fm.f.getName());
-        String outputFile = outputClassModel.getFullName();
-        writeOutputFile(velocityContext, template, outputFile);
-    }
-
-    private void writeOutputFile(VelocityContext velocityContext, String templateFileName, String outputClass)
-            throws MojoExecutionException {
+    // TODO: Repair error handling.
+    private void writeOutputFile(VelocityContext velocityContext, String templateFileName, String outputClass) {
         Writer writer = null;
-        File fileToWrite = Testable.classToPathOfJavaFile(outputDirectory, outputClass);
+        File fileToWrite = classToPathOfJavaFile(outputDirectory, outputClass);
         try {
             writer = writeOutputFileUnchecked(velocityContext, templateFileName, outputClass, fileToWrite);
         } catch (IOException e) {
-            throw new MojoExecutionException("Could not write file " + fileToWrite.toString(), e);
+            throw new IllegalArgumentException("Could not write file " + fileToWrite.toString(), e);
         } finally {
             checkedClose(writer);
         }
@@ -212,70 +213,30 @@ public class CodegenMojo extends AbstractMojo implements Logger {
         return writer;
     }
 
-    private void checkedClose(Writer writer) throws MojoExecutionException {
+    private void checkedClose(Writer writer) {
         try {
             writer.close();
         } catch (IOException e) {
-            throw new MojoExecutionException("Could not close file", e);
+            throw new IllegalArgumentException("Could not close file", e);
         }
     }
 
-    private class TestableImpl extends Testable {
-        @Override
-        Logger getLogger() {
-            return CodegenMojo.this;
+    static File classToPathOfJavaFile(File base, String className) {
+        String[] components = className.split("\\.");
+        File result = new File(base, javaNameToPathComponent(components, 0));
+        if (components.length >= 2) {
+            for (int i = 1; i < components.length; ++i) {
+                result = new File(result, javaNameToPathComponent(components, i));
+            }
         }
-
-        @Override
-        String getProgram() {
-            return CodegenMojo.this.program;
-        }
+        return result;
     }
 
-    static abstract class Testable {
-        abstract Logger getLogger();
-        abstract String getProgram();
-
-        ClassModel getTarget(final VelocityContext velocityContext, final String fieldName)
-                throws MojoExecutionException {
-            if (!velocityContext.containsKey("target")) {
-                String msg = String.format("VelocityContext %s does not have \"target\" member. Cannot get output file name.", fieldName);
-                getLogger().error(msg);
-                throw new MojoExecutionException(msg);
-            }
-            Object targetAsObject = velocityContext.get("target");
-            if (!(targetAsObject instanceof ClassModel)) {
-                String msg = String.format("Expected a ClassModel as \"target\" in VelocityContext %s. Cannot get output file name.", fieldName);
-                getLogger().error(msg);
-                throw new MojoExecutionException(msg);
-            }
-            ClassModel targetAsClassModel = (ClassModel) targetAsObject;
-            if(StringUtils.isBlank(targetAsClassModel.getFullName())) {
-                String msg = String.format("ClassModel \"target\" does not have fullName, for field %s.",
-                        fieldName);
-                getLogger().error(msg);
-                throw new MojoExecutionException(msg);
-            }
-            return targetAsClassModel;
-        }
-
-        static File classToPathOfJavaFile(File base, String className) {
-            String[] components = className.split("\\.");
-            File result = new File(base, javaNameToPathComponent(components, 0));
-            if (components.length >= 2) {
-                for (int i = 1; i < components.length; ++i) {
-                    result = new File(result, javaNameToPathComponent(components, i));
-                }
-            }
-            return result;
-        }
-
-        private static String javaNameToPathComponent(final String[] components, final int index) {
-            if (index < (components.length - 1)) {
-                return components[index];
-            } else {
-                return components[index] + ".java";
-            }
+    private static String javaNameToPathComponent(final String[] components, final int index) {
+        if (index < (components.length - 1)) {
+            return components[index];
+        } else {
+            return components[index] + ".java";
         }
     }
 }

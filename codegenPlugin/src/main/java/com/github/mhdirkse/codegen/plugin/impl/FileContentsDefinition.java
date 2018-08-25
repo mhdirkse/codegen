@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(chain = true)
-class FileContentsDefinition {
+public class FileContentsDefinition {
     private VelocityContext velocityContext;
     private String templateFileName;
     private String outputClassName;
