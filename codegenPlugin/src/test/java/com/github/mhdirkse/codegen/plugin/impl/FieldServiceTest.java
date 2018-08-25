@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.github.mhdirkse.codegen.compiletime.Input;
+import com.github.mhdirkse.codegen.compiletime.Output;
 
 @RunWith(EasyMockRunner.class)
 public class FieldServiceTest {
@@ -124,5 +125,21 @@ public class FieldServiceTest {
         instance.setField(field, "some string", callback);
         String retrieved = instance.getField(field, callback).map(v -> String.class.cast(v)).get();
         Assert.assertEquals("some string", retrieved);
+    }
+
+    @Test
+    public void testWhenFieldValueIsNullThenError() throws NoSuchFieldException {
+        Field field = TestInput.class.getField("normalField");
+        expect(callback.getStatusFieldValueIsNull()).andReturn(
+                Status.forFieldError(
+                        StatusCode.FIELD_GET_ERROR_AFTER_PROGRAM_RUN,
+                        Output.class, field));
+        replay(callback);
+        Assert.assertNull(instance.getField(field, callback).orElse(null));
+        verify(callback);
+        Assert.assertEquals(1, statusReportingService.getStatusses().size());
+        Assert.assertEquals(
+                StatusCode.FIELD_GET_ERROR_AFTER_PROGRAM_RUN,
+                statusReportingService.getStatusses().get(0).getStatusCode());
     }
 }

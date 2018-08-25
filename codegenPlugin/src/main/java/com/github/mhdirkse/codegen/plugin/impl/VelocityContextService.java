@@ -12,6 +12,7 @@ class VelocityContextService {
         Status getStatusVelocityContextEmpty();
         Status getStatusVelocityContextLacksTarget();
         Status getStatusTargetTypeMismatch();
+        Status getStatusClassModelNoFullName();
     }
 
     private final ServiceFactory sf;
@@ -45,6 +46,16 @@ class VelocityContextService {
         }
         else {
             return Optional.of((ClassModel) target);
+        }
+    }
+
+    Optional<String> checkClassModelHasFullName(final ClassModel cm, final Callback callback) {
+        if(Objects.isNull(cm.getFullName())) {
+            Status status = callback.getStatusClassModelNoFullName();
+            sf.reporter().report(status);
+            return Optional.<String>empty();
+        } else {
+            return Optional.of(cm.getFullName());
         }
     }
 }

@@ -11,6 +11,7 @@ import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_TARGET_NOT_CLASS_MODEL;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKNOWN_FIELD_ERROR;
 import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.UNKONWN_FIELD_ERROR_AFTER_PROGRAM_RUN;
+import static com.github.mhdirkse.codegen.plugin.impl.StatusCode.FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -85,7 +86,7 @@ implements Runnable
     private Set<Field> getFields(
             final Class<? extends Annotation> annotation,
             final Class<?> targetType) {
-        Set<Field> publicWithRequestedAnnotationFields  = sf.fieldLister().getFields(
+        Set<Field> publicWithRequestedAnnotationFields = sf.fieldLister().getFields(
                 annotation, getFieldListerServiceCallback(annotation));
         return publicWithRequestedAnnotationFields.stream()
             .filter((f) -> checkField(annotation, f, targetType)).collect(Collectors.toSet());
@@ -192,7 +193,8 @@ implements Runnable
             .flatMap(vc -> sf.velocityContextService().checkHasTarget(vc, getVelocityContextCallback(field)))
             .flatMap(o -> sf.velocityContextService().checkTargetIsClassModel(
                     o, getVelocityContextCallback(field)))
-            .map(ClassModel::getFullName)
+            .flatMap(cm -> sf.velocityContextService().checkClassModelHasFullName(
+                    cm, getVelocityContextCallback(field)))
             .flatMap(className -> resultWhenFilled.map(
                     result -> result.setOutputClassName(className)));
     }
@@ -250,6 +252,18 @@ implements Runnable
                         annotation,
                         field);
             }
+
+            @Override
+            public Status getStatusFieldValueIsNull() {
+                return unknown();
+            }
+
+            private Status unknown() { 
+                return Status.forFieldError(
+                        UNKNOWN_FIELD_ERROR,
+                        annotation,
+                        field);
+            }
         };
     }
 
@@ -299,6 +313,11 @@ implements Runnable
                         Output.class,
                         field);
             }
+
+            @Override
+            public Status getStatusFieldValueIsNull() {
+                return unknown();
+            }
         };
     }
 
@@ -332,6 +351,11 @@ implements Runnable
                         FIELD_SET_ERROR,
                         TypeHierarchy.class,
                         field);
+            }
+
+            @Override
+            public Status getStatusFieldValueIsNull() {
+                return unknown();
             }
         };
     }
@@ -390,7 +414,15 @@ implements Runnable
                         Output.class,
                         field);
                         
-            }            
+            }
+
+            @Override
+            public Status getStatusFieldValueIsNull() {
+                return Status.forFieldError(
+                        StatusCode.FIELD_GET_ERROR_AFTER_PROGRAM_RUN,
+                        Output.class,
+                        field);
+            }
         };
     }
 
@@ -420,6 +452,14 @@ implements Runnable
                         field,
                         ClassModel.class.getName(),
                         field.getType().getName());
+            }
+
+            @Override
+            public Status getStatusClassModelNoFullName() {
+                return Status.forFieldError(
+                        FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME,
+                        Output.class,
+                        field);
             }
         };
     }

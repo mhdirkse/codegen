@@ -21,6 +21,8 @@ enum StatusCode {
     FIELD_VELOCITY_CONTEXT_LACKS_TARGET("@{1} field {2}: VelocityContext does not have key \"target\"."),
     FIELD_VELOCITY_CONTEXT_TARGET_NOT_CLASS_MODEL(
             "@{1} field {2}: The \"target\" should be a {3}, but was {4}."),
+    FIELD_VELOCITY_CONTEXT_CLASS_MODEL_NO_FULL_NAME(
+            "@{1} field {2}: The ClassModel found with key \"target\" lacks a class name (fullName)."),
 
     UNKNOWN_FIELD_ERROR("@{1} field {2}: unknown error."),
     UNKONWN_FIELD_ERROR_AFTER_PROGRAM_RUN(

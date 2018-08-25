@@ -31,7 +31,7 @@ public class FieldServiceExceptionLoggingTest extends LogTestBase {
         }
     }
 
-    private  class Callback implements FieldService.Callback {
+    private class Callback implements FieldService.Callback {
         @Override
         public Status getStatusAccessModifierError(String modifier) {
             return notImplemented();
@@ -60,6 +60,11 @@ public class FieldServiceExceptionLoggingTest extends LogTestBase {
                     StatusCode.FIELD_SET_ERROR,
                     Input.class,
                     inaccessibleField);
+        }
+
+        @Override
+        public Status getStatusFieldValueIsNull() {
+            return notImplemented();
         }
     }
 

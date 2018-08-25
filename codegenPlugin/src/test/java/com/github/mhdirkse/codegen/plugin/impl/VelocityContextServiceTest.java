@@ -96,4 +96,26 @@ public class VelocityContextServiceTest {
         Assert.assertEquals(1, reporter.getStatusses().size());
         Assert.assertFalse(result.isPresent());
     }
+
+    @Test
+    public void testWhenClassModelHasFullNameThenNoError() {
+        ClassModel cm = new ClassModel();
+        cm.setFullName("SomeClass");
+        replay(callback);
+        Optional<String> result = instance.checkClassModelHasFullName(cm, callback);
+        verify(callback);
+        Assert.assertTrue(result.isPresent());
+    }
+
+    @Test
+    public void testWhenClassModelLacksFullNameThenError() {
+        ClassModel cm = new ClassModel();
+        expect(callback.getStatusClassModelNoFullName()).andReturn(
+                Status.general(StatusCode.TEST_STATUS_ZERO_ARGS, LogPriority.ERROR));
+        replay(callback);
+        Optional<String> result = instance.checkClassModelHasFullName(cm, callback);
+        verify(callback);
+        Assert.assertEquals(1, reporter.getStatusses().size());
+        Assert.assertFalse(result.isPresent());
+    }
 }

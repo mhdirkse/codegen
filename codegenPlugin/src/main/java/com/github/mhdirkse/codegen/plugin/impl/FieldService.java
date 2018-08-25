@@ -2,12 +2,14 @@ package com.github.mhdirkse.codegen.plugin.impl;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 import java.util.Optional;
 
 class FieldService {
     interface Callback {
         Status getStatusAccessModifierError(String modifier);
         Status getStatusTypeMismatch(Class<?> actual);
+        Status getStatusFieldValueIsNull();
         Status getStatusFieldGetError();
         Status getStatusFieldSetError();
     }
@@ -49,7 +51,12 @@ class FieldService {
 
     Optional<Object> getField(final Field field, final Callback callback) {
         try {
-            return Optional.ofNullable(field.get(sf.getProgram()));
+            Object rawValue = field.get(sf.getProgram());
+            if(Objects.isNull(rawValue)) {
+                Status status = callback.getStatusFieldValueIsNull();
+                sf.reporter().report(status);
+            }
+            return Optional.ofNullable(rawValue);
         }
         catch(Exception e) {
             Status status = callback.getStatusFieldGetError();
