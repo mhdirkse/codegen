@@ -23,11 +23,21 @@ The delegator has a member of type `HandlerStack`, which is a class in codegenRu
 
 Class `VelocityContexts` provides helper methods to set this up. These methods are applied in CodegenTestProgram and you can emulate that code to set up your own chain of responsibilities. 
 
+# Tips and tricks
+
+* To refresh your generated files, you can do a clean Maven build with `mvn clean install`. The Maven clean removes the target directory and the Maven install regenerates them.
+* Alternatively, you can delete your `target/generated-sources` folder and do a Maven update in Eclipse. The Codegen plugin was build to cooperate with Eclipse.
+* To analyze errors, you will probably need the console output of Maven. However, a Mojo exception is always thrown when Codegen encounters errors. Eclipse will therefore always show a trace of the issue in its Problems window.
+
 # Testing
 
-Much code is covered by unit tests, but it is wise to test some things manually.
+For the users of this plugin, I do my very best to tag only versions that work. For this reason, please work with a tagged version of this plugin.
+<p>
+In the remainder of this section, I write some notes on how to test future versions of this plugin.
+<p>
+Much code is covered by unit tests, but I remember the following ideas for manual tests.
 
-## Code reviews
+** Code reviews **
 
 1. Please check the validity of all the pom.xml files, as follows:
     * Each pom.xml file must reference the same version number in the <parent> section.
@@ -41,6 +51,7 @@ Much code is covered by unit tests, but it is wise to test some things manually.
     * codegenTest should not depend directly on other sub-projects.
 2. Check that all sub-projects have the same version number as the master pom. You can use the script `testScripts/checkVersion.sh` for this.
 
-## Integration tests
+** Integration tests **
 
-1. When all your work is committed, introduce some errors in `codegenTestProgram/.../InputProgram.java`. Then run the build and check whether your errors are detected. You can remove your errors by checking out the original code again.
+1. When all work is committed, introduce some errors in `codegenTestProgram/.../InputProgram.java`. Then run the build and check whether your errors are detected. You can remove your errors by checking out the original code again.
+2. In CodegenTest remove `target/generated-sources`. A Maven update in Eclipse should be sufficient to rebuild the project.
