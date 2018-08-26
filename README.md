@@ -2,7 +2,7 @@
 Maven plugin that generates classes from given interfaces and Velocity templates. The actual plugin is in sub-project codegenPlugin. To use the plugin, add it to the `<build><plugins>` section of your pom.xml. You need to write a small Java class that tells the Codegen plugin what Java interfaces to use as source data, what output classes to generate and what Velocity templates to use. This is the Codegen program. The codegenTest sub-project does an integration test of the Codegen plugin. Please see this code to learn how to use the plugin.
 
 Here is a quick list of the capabilities of codegenPlugin:
-1. Generate Java classes based on Velocity templates that are populated using your own Java program, yo Codegen program.
+1. Generate Java classes based on Velocity templates that are populated using your own Java program, you Codegen program.
 2. Your Java program defines the data it needs through annotations and public fields. Requestable data is:
     + Metadata about classes, in particular the class name and the methods.
     + Metadata about class hierarchies, in particular the list of sub-classes of a given root. 
@@ -25,6 +25,11 @@ Class `VelocityContexts` provides helper methods to set this up. These methods a
 
 # Tips and tricks
 
+* To inject metadata about a Java interface, define a public field of type `ClassModel` and annotate as `@Input`. The value of the annotation is the name of the interface.
+* To inject a list of all class names in a dependency hierarchy, define a public field of type `ClassModelList`. This type is just a non-parameterized alias of `List<ClassModel>`. Add annotation `@TypeHierarchy` with the base class name as value.
+* You can add an additional parameter to the `@TypeHierarchy` annotation to filter by inheritance from an interface. Use property `filterIsA`.
+* The `@TypeHierarchy` annotation expects all classes to be in the same package and the same class loader.
+* To apply a VelocityTemplate, define a public field of type `VelocityContext`. Annotate with `@Output` to define the template that has to be filled with this `VelocityContext`. The output `.java` file is based on the class name. The class name should be in a `ClassModel` object in the `VelocityContext` under key `"target"`.
 * To refresh your generated files, you can do a clean Maven build with `mvn clean install`. The Maven clean removes the target directory and the Maven install regenerates them.
 * Alternatively, you can delete your `target/generated-sources` folder and do a Maven update in Eclipse. The Codegen plugin was build to cooperate with Eclipse.
 * To analyze errors, you will probably need the console output of Maven. However, a Mojo exception is always thrown when Codegen encounters errors. Eclipse will therefore always show a trace of the issue in its Problems window.
@@ -37,7 +42,7 @@ In the remainder of this section, I write some notes on how to test future versi
 <p>
 Much code is covered by unit tests, but I remember the following ideas for manual tests.
 
-** Code reviews **
+### Code reviews
 
 1. Please check the validity of all the pom.xml files, as follows:
     * Each pom.xml file must reference the same version number in the <parent> section.
@@ -51,7 +56,7 @@ Much code is covered by unit tests, but I remember the following ideas for manua
     * codegenTest should not depend directly on other sub-projects.
 2. Check that all sub-projects have the same version number as the master pom. You can use the script `testScripts/checkVersion.sh` for this.
 
-** Integration tests **
+### Integration tests
 
 1. When all work is committed, introduce some errors in `codegenTestProgram/.../InputProgram.java`. Then run the build and check whether your errors are detected. You can remove your errors by checking out the original code again.
 2. In CodegenTest remove `target/generated-sources`. A Maven update in Eclipse should be sufficient to rebuild the project.
