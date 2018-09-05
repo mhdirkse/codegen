@@ -50,6 +50,9 @@ public class CodegenMojoDelegateUnhappyPopulatingTest extends CodegenMojoDelegat
         @TypeHierarchy("xyz")
         public ClassModelList typeHierarchParentClassDoesNotExist;
 
+        @TypeHierarchy(value = INPUT_CLASS_NAME, filterIsA = "xyz")
+        public ClassModelList typeHierarchyFilterClassDoesNotExit;
+
         @Override
         public void run() {
         }
@@ -63,7 +66,8 @@ public class CodegenMojoDelegateUnhappyPopulatingTest extends CodegenMojoDelegat
             {"inputIsFinal", FIELD_UNWANTED_ACCESS_MODIFIER, "final"},
             {"inputNotClassModel", FIELD_TYPE_MISMATCH, "com.github.mhdirkse.codegen.compiletime.ClassModel"},
             {"outputNotVelocityContext", FIELD_TYPE_MISMATCH, "org.apache.velocity.VelocityContext"},
-            {"typeHierarchParentClassDoesNotExist", FIELD_REQUIRED_CLASS_NOT_FOUND, "xyz"}
+            {"typeHierarchParentClassDoesNotExist", FIELD_REQUIRED_CLASS_NOT_FOUND, "xyz"},
+            {"typeHierarchyFilterClassDoesNotExit", FIELD_REQUIRED_CLASS_NOT_FOUND, "xyz"}
         });
     }
 

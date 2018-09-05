@@ -380,8 +380,11 @@ implements Runnable
         return new ClassService.Callback() {
             @Override
             public Status getStatusClassNotFound() {
-                // TODO Auto-generated method stub
-                return null;
+                return Status.forFieldError(
+                        FIELD_REQUIRED_CLASS_NOT_FOUND,
+                        TypeHierarchy.class,
+                        field,
+                        filterClass);
             }
         };
     }
