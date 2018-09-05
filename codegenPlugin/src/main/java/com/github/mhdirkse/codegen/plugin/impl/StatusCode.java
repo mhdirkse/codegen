@@ -1,9 +1,8 @@
 package com.github.mhdirkse.codegen.plugin.impl;
 
-import lombok.AccessLevel;
-import lombok.Getter;
+import com.github.mhdirkse.utils.AbstractStatusCode;
 
-enum StatusCode {
+enum StatusCode implements AbstractStatusCode {
     TEST_STATUS_ZERO_ARGS("Some status zero arguments."),
     TEST_STATUS_ONE_ARG("Some status about: {1}."),
     TEST_STATUS_TWO_ARGS("Some status about: {1} and {2}."),
@@ -28,21 +27,13 @@ enum StatusCode {
     UNKONWN_FIELD_ERROR_AFTER_PROGRAM_RUN(
             "@{1} field {2} was not accessible after your Codegen program ran.");
 
-    StatusCode(final String formatString) {
-        this.formatString = formatString;
+    private String formatString;
+    @Override
+    public String getFormatString() {
+        return formatString;
     }
 
-    @Getter(AccessLevel.PACKAGE)
-    private final String formatString;
-
-    String format(String... args) {
-        String result = formatString;
-        for(int i = 0; i < args.length; ++i) {
-            String toReplace = String.format("\\Q{%d}\\E", i+1);
-            result = result.replaceAll(
-                    toReplace,
-                    args[i]);
-        }
-        return result;
+    StatusCode(final String formatString) {
+        this.formatString = formatString;
     }
 }

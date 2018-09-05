@@ -9,6 +9,15 @@ Here is a quick list of the capabilities of codegenPlugin:
     + You can filter this list of sub-classes by an interface that should be implemented. This feature was introduced to generate implementations of visitors. You can for example distinguish between composite and atomic classes.
 3. You can use helper code to generate a chain of responsibilities.
 
+# Installation
+
+1. Checkout this project and also the project `mhdirkse/utils`.
+2. Look in the Codegen pom what version of `mhdirkse/utils` is used.
+3. In the `utils` code, checkout that version and build it using `mvn clean install`.
+4. Build the Codegen project using `mvn clean install`.
+
+# Details
+
 Here is an overview of all the sub projects:
 * codegenPlugin: The Mojo you need in your pom.xml.
 * codegenTest: Provides integration test and shows how to use this project.
