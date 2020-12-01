@@ -65,14 +65,9 @@
           <execution>
             <id>mojo-descriptor</id>
             <goals>
-              <goal>descriptor</goal>
+              <goal>descriptor</goal>              
             </goals>
-          </execution>
-          <execution>
-            <id>help-goal</id>
-            <goals>
-              <goal>helpmojo</goal>
-            </goals>
+            <phase>process-classes</phase>
           </execution>
         </executions>
       </plugin>
