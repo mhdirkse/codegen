@@ -11,10 +11,11 @@ Here is a quick list of the capabilities of codegenPlugin:
 
 # Installation
 
-1. Checkout this project and also the project `mhdirkse/utils`.
-2. Look in the Codegen pom what version of `mhdirkse/utils` is used.
-3. In the `utils` code, checkout that version and build it using `mvn clean install`.
-4. Build the Codegen project using `mvn clean install`.
+1. Requires Java 8 and Maven 3.6.
+2. Checkout this project and also the project `mhdirkse/utils`.
+3. Look in the Codegen pom what version of `mhdirkse/utils` is used.
+4. In the `utils` code, checkout that version and build it using `mvn clean install`.
+5. Build the Codegen project using `mvn clean install`.
 
 # Details
 
